@@ -1,2 +1,10 @@
 # pvml
-A library for novices who want to experiment with Machine Learning 
+## A Machine Learning library optimized for teaching
+
+The library include code for many classic machine learning models such as logistic regression, svm, neural networks etc.
+
+The code is particularly aimed to students in machine learning and does not require advanced programming skills, just a basic understanding of Python and of the numpy package.
+
+**Do not expect** optimized algorithms or a sophisticated design.
+
+If your objective is to obtain good results quickly, please consider using a more professional library such as [scikit-learn](https://scikit-learn.org).
