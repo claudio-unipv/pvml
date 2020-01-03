@@ -3,11 +3,6 @@ from multinomial_logistic import softmax
 
 
 # TODO:
-# - momentum
-# - train method with minibatch
-# - inference method
-# - weight decay
-# - mnist example
 # - docstrings and comments
 
 
@@ -22,6 +17,8 @@ class MLP:
             w *= np.sqrt(2.0 / a)  # Kaiming initialization
             self.weights.append(w)
             self.biases.append(np.zeros(b))
+        self.update_w = [np.zeros_like(w) for w in self.weights]
+        self.update_b = [np.zeros_like(b) for b in self.biases]
 
     def forward(self, X):
         activations = [X]
@@ -44,24 +41,30 @@ class MLP:
             delta *= (X > 0).astype(int)  # derative of relu
         return deltas[::-1]
 
-    def backprop(self, X, Y, lr=1e-4):
+    def backprop(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         activations = self.forward(X)
         probs = activations[-1][np.arange(Y.shape[0]), Y]
         loss = -np.log(probs).mean()  # Cross entropy
         deltas = self.backward(Y, activations)
-        for X, D, W, b in zip(activations, deltas, self.weights, self.biases):
-            grad_W = (X.T @ D) / X.shape[0]
+        for X, D, W, b, uw, ub in zip(activations, deltas,
+                                      self.weights, self.biases,
+                                      self.update_w, self.update_b):
+            grad_W = (X.T @ D) / X.shape[0] + 0.5 * lambda_ * W
             grad_b = D.mean(0)
-            W -= lr * grad_W
-            b -= lr * grad_b
+            uw *= momentum
+            uw -= lr * grad_W
+            W += uw
+            ub *= momentum
+            ub -= lr * grad_b
+            b += ub
         return loss
 
     def inference(self, X):
-        probs = self.forward[-1]
+        probs = self.forward(X)[-1]
         labels = np.argmax(probs, 1)
         return labels, probs
 
-    def train(self, X, Y, lr=1e-4, steps=10000, batch=None):
+    def train(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99, steps=10000, batch=None):
         m = X.shape[0]
         if batch is None:
             batch = X.shape[0]
@@ -74,7 +77,9 @@ class MLP:
                 np.random.shuffle(indices)
             loss = self.backprop(X[indices[i:i + batch], :],
                                  Y[indices[i:i + batch]],
-                                 lr=lr)
+                                 lr=lr,
+                                 lambda_=lambda_,
+                                 momentum=momentum)
             losses.append(loss)
             i += batch
         return losses

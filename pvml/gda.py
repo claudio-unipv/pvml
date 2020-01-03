@@ -230,4 +230,3 @@ if __name__ == "__main__":
         print(app.W)
         print("b")
         print(app.b)
-

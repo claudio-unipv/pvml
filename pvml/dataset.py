@@ -198,7 +198,7 @@ def _load_mnist_set(filename, features_url, labels_url):
     with urllib.request.urlopen(features_url) as remote:
         with gzip.open(remote) as f:
             data = np.frombuffer(f.read(), dtype=np.uint8)
-            X = data[16:].reshape((-1, (28 * 28))).astype(np.float32)
+            X = data[16:].reshape((-1, (28 * 28))).astype(np.float32) / 255.0
     with urllib.request.urlopen(labels_url) as remote:
         with gzip.open(remote) as f:
             data = np.frombuffer(f.read(), dtype=np.uint8)
