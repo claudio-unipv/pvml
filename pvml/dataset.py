@@ -10,16 +10,32 @@ _FACTORIES = {}
 def load_dataset(datasetname):
     """Load or generate a data set given its name.
 
-    TODO --- 
+    If the name is unknown then it interprets it as a path to a data
+    file.  The file should be a text file with one vector per row and
+    with elements separated by spaces).  The last element is used as
+    class label.
+
+    Parameters
+    ----------
+    datasetname : str
+         name of the dataset or path to a file
+
+    Returns
+    -------
+    ndarray, shape (m, n)
+        features.
+    ndarray, shape (m,)
+        class labels.
+
     """
     try:
         f = _FACTORIES[datasetname]
-        print(f.__doc__)
-        X, Y = f()
+        return f()
     except KeyError:
-        data = np.loadtxt(filename)
-        X = data[:, :-1]
-        Y = data[:, -1].astype(int)        
+        pass
+    data = np.loadtxt(datasetname)
+    X = data[:, :-1]
+    Y = data[:, -1].astype(int)
     return X, Y
 
 
@@ -93,7 +109,7 @@ def _swissroll_dataset():
     t = np.linspace(0, 4 * np.pi, sz)
     X = t[:, None] * np.vstack([np.cos(t + Y * np.pi),
                                 np.sin(t + Y * np.pi)]).T
-    X += 0.2 * np.random.randn(*X.shape)    
+    X += 0.2 * np.random.randn(*X.shape)
     return X, Y
 
 
@@ -119,7 +135,7 @@ def _yinyang_dataset():
     X = np.vstack([r * np.cos(t), r * np.sin(t)]).T
     r1 = ((X - np.array([[0, 3]])) ** 2).sum(1)
     r2 = ((X - np.array([[0, -3]])) ** 2).sum(1)
-    
+
     Y = np.logical_and(np.logical_or(r1 < 9, X[:, 0] > 0),
                        np.logical_not(r2 < 9))
     Y2 = np.logical_or(r1 < 1.5 ** 2, r2 < 1.5 ** 2)
@@ -188,8 +204,11 @@ def _load_mnist_set(filename, features_url, labels_url):
             data = np.frombuffer(f.read(), dtype=np.uint8)
             Y = data[8:].astype(np.int32)
 
-    np.savez(filename, X=X, Y=Y)
-    print("Dataset saved to '{}'".format(filename), file=sys.stderr)
+    try:
+        np.savez(filename, X=X, Y=Y)
+        print("Dataset saved to '{}'".format(filename), file=sys.stderr)
+    except Exception as e:
+        print("Failed to save the data set to '{}' ({})".format(filename, e))
     return X, Y
 
 
@@ -223,7 +242,6 @@ def _mnist_test_dataset():
 
 
 if __name__ == "__main__":
-    import sys
     import matplotlib.pyplot as plt
 
     if len(sys.argv) < 2:
@@ -232,16 +250,23 @@ if __name__ == "__main__":
         for k, v in sorted(_FACTORIES.items()):
             txt = v.__doc__.splitlines()[0]
             print("{:20s}\t{}".format("'" + k + "'", txt))
-    else:
+        sys.exit()
+
+    try:
         X, Y = load_dataset(sys.argv[1])
-        m, n = X.shape
-        print("Loaded {} samples with {} features".format(m, n))
-        print()
-        for k in range(Y.max() + 1):
-            count = sum(Y == k)
-            print("{} samples of class {}".format(count, k))
-        if n == 2:
-            plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.Paired)
-            plt.show()
-
-
+    except Exception as e:
+        print("Error loading the data set ({})".format(e))
+        sys.exit()
+    m, n = X.shape
+    print("Loaded {} samples with {} features".format(m, n))
+    print()
+    for k in range(Y.max() + 1):
+        count = sum(Y == k)
+        print("{} samples of class {}".format(count, k))
+    if n == 2:
+        plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.Paired)
+        plt.show()
+    if len(sys.argv) > 2:
+        np.savetxt(sys.argv[2],
+                   np.concatenate([X, Y[:, None]], 1),
+                   fmt=(["%.4f"] * X.shape[1]) + ["%d"])
