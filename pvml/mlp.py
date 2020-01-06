@@ -214,10 +214,12 @@ if __name__ == "__main__":
 
     class Demo(demo.Demo):
         def train(self, X, Y):
-            neurons = [X.shape[1]] + self.args.hidden + [Y.max() + 1]
+            hidden = list(map(int, self.args.hidden.split(",")))
+            neurons = [X.shape[1]] + hidden + [Y.max() + 1]
             self.net = MLP(neurons)
             losses = self.net.train(X, Y, steps=self.args.steps,
                                     lr=self.args.lr,
+                                    momentum=self.args.momentum,
                                     batch=self.args.batch)
             return losses
 
@@ -227,8 +229,10 @@ if __name__ == "__main__":
             return Y
 
     app = Demo()
-    app.parser.add_argument("-H", "--hidden", type=int, nargs="+",
-                            default=[], help="Size of hidden layers")
+    app.parser.add_argument("-m", "--momentum", type=float,
+                            default=0.99, help="Momentum term")
+    app.parser.add_argument("-H", "--hidden", default="",
+                            help="Comma separated sizes of hidden layers")
     app.parser.add_argument("-B", "--batch", type=int,
                             help="Size of the minibatch")
     app.run()
