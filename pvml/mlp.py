@@ -26,7 +26,7 @@ class MLP:
             then output).
         """
         # Initialize weights with the Kaiming technique.
-        self.weights = [np.random.randn(m, n) / np.sqrt(2.0 / n)
+        self.weights = [np.random.randn(m, n) * np.sqrt(2.0 / m)
                         for m, n in zip(neuron_counts[:-1], neuron_counts[1:])]
         # Biases are zero-initialized.
         self.biases = [np.zeros(m) for m in neuron_counts[1:]]

@@ -18,6 +18,7 @@ def first_layer_image(weights):
 
 def plot_errors(errors):
     plt.figure(1)
+    plt.clf()
     plt.plot(errors[0])
     plt.plot(errors[1])
     plt.legend(["Training", "Test"])
@@ -29,6 +30,7 @@ def plot_errors(errors):
 def show_weights(weights):
     im = first_layer_image(weights[0])
     plt.figure(2)
+    plt.clf()
     plt.subplot(1, len(weights), 1)
     v = np.abs(im).max()
     plt.imshow(im, cmap=plt.cm.seismic, vmin=-v, vmax=v)
@@ -51,6 +53,7 @@ def show_errors(X, Y, predictions, k=100):
     im = X.reshape(rows, cols, 28, 28).transpose(0, 2, 1, 3)
     im = im.reshape(rows * 28, -1)
     plt.figure(3)
+    plt.clf()
     plt.imshow(im, cmap=plt.cm.gray)
     plt.title("Errors")
 
@@ -60,7 +63,7 @@ def main():
     Xtest, Ytest = dataset.load_dataset("mnist_test")
 
     plt.ion()
-    batch_sz = 100
+    batch_sz = 32
     epocs = 200
 
     network = mlp.MLP([Xtrain.shape[1], 64, 64, 10])
