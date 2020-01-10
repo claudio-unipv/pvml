@@ -241,6 +241,35 @@ def _mnist_test_dataset():
     return X, Y
 
 
+_FASHION_MNIST_URL = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/"
+
+
+@_register("fashion_mnist_train")
+def _fashion_mnist_train_dataset():
+    """MNIST dataset for handwritten digits recognition (training data).
+
+    The data is downloaded from http://yann.lecun.com/exdb/mnist/
+    and saved to the file 'mnist_train.npz' to avoid multiple downloads.
+    """
+    X, Y = _load_mnist_set("fashion_mnist_train.npz",
+                           _FASHION_MNIST_URL + "train-images-idx3-ubyte.gz",
+                           _FASHION_MNIST_URL + "train-labels-idx1-ubyte.gz")
+    return X, Y
+
+
+@_register("fashion_mnist_test")
+def _fashion_mnist_test_dataset():
+    """MNIST dataset for handwritten digits recognition (test data).
+
+    The data is downloaded from http://yann.lecun.com/exdb/mnist/
+    and saved to the file 'mnist_test.npz' to avoid multiple downloads.
+    """
+    X, Y = _load_mnist_set("fashion_mnist_test.npz",
+                           _FASHION_MNIST_URL + "t10k-images-idx3-ubyte.gz",
+                           _FASHION_MNIST_URL + "t10k-labels-idx1-ubyte.gz")
+    return X, Y
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
