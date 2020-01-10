@@ -85,7 +85,7 @@ class MLP:
         for W, X in zip(self.weights[:0:-1], activations[-2::-1]):
             delta = delta @ W.T
             deltas.append(delta)
-            delta *= (X > 0).astype(int)  # derative of relu
+            delta *= (X > 0).astype(int)  # derivative of relu
         return deltas[::-1]
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
@@ -158,7 +158,7 @@ class MLP:
               steps=10000, batch=None):
         """Train the network.
 
-        Applu multiple steps of stochastic gradient descent.
+        Apply multiple steps of stochastic gradient descent.
 
         Parameters
         ----------
