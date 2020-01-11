@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 
 def first_layer_image(weights):
     count = weights.shape[1]
-    cols = max([min(x, count // x) for x in range(1, count // 2)
+    rows = max([min(x, count // x) for x in range(1, count // 2)
                 if count % x == 0])
-    rows = count // cols
+    cols = count // rows
     im = weights.reshape(28, 28, rows, cols).transpose(2, 0, 3, 1)
     im = im.reshape(28 * rows, -1)
     return im
@@ -41,32 +41,32 @@ def show_weights(weights):
     plt.title("Weights")
 
 
-def show_errors(X, Y, predictions, k=100):
-    errors = (Y != predictions).nonzero()[0]
-    np.random.shuffle(errors)
-    errors = errors[:k]
-    X = X[errors]
-    count = X.shape[0]
-    cols = max([min(x, count // x) for x in range(1, 1 + count)
-                if count % x == 0])
-    rows = count // cols
-    im = X.reshape(rows, cols, 28, 28).transpose(0, 2, 1, 3)
-    im = im.reshape(rows * 28, -1)
+def show_confusion_matrix(Y, predictions):
+    classes = Y.max() + 1
+    cm = np.empty((classes, classes))
+    for klass in range(classes):
+        sel = (Y == klass).nonzero()
+        counts = np.bincount(predictions[sel], minlength=classes)
+        cm[klass, :] = 100 * counts / max(1, counts.sum())
     plt.figure(3)
     plt.clf()
-    plt.imshow(im, cmap=plt.cm.gray)
-    plt.title("Errors")
-
+    plt.imshow(cm, vmin=0, vmax=100, cmap=plt.cm.Blues)
+    for i in range(classes):
+        for j in range(classes):
+            txt = "{:.1f}".format(cm[i, j], ha="center", va="center")
+            plt.text(j - 0.25, i, txt)
+    plt.title("Confusion matrix")
+    
 
 def main():
     Xtrain, Ytrain = dataset.load_dataset("mnist_train")
     Xtest, Ytest = dataset.load_dataset("mnist_test")
 
     plt.ion()
-    batch_sz = 32
-    epocs = 200
+    batch_sz = 100
+    epocs = 250
 
-    network = mlp.MLP([Xtrain.shape[1], 64, 64, 10])
+    network = mlp.MLP([Xtrain.shape[1], 128, 10])
     errors = [[], []]
     for epoc in range(1, epocs + 1):
         steps = Xtrain.shape[0] // batch_sz
@@ -78,11 +78,14 @@ def main():
         test_error = (predictions != Ytest).mean()
         errors[0].append(100 * training_error)
         errors[1].append(100 * test_error)
-        print(epoc, 100 * training_error, 100 * test_error)
+        msg = "Epoc {}, Training err. {:.2f}, Test err. {:.2f}"
+        print(msg.format(epoc, 100 * training_error, 100 * test_error))
         plot_errors(errors)
         show_weights(network.weights)
-        show_errors(Xtest, Ytest, predictions)
+        show_confusion_matrix(Ytest, predictions)
         plt.pause(0.05)
+    network.save("mnist_network.npz")
+    np.savetxt("errors-l1.txt", np.array(errors).T, fmt="%.2f")
     plt.ioff()
     plt.show()
 
