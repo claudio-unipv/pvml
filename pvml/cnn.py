@@ -288,7 +288,6 @@ def convolution2d(X, W, sh, sw):
 
     Returns
     -------
-    ndarray, shape (m, h - kh - 1, nw, c)
     ndarray, shape (m, nh, nw, nn)
         Result of the convolution (nh = (h - kh + 1) // sh,
         nw = (w - kw + 1) // sw).
@@ -311,16 +310,85 @@ def convolution2d(X, W, sh, sw):
 # print(Z[0, :, : ,1])
 
 
-X = np.zeros((7, 16, 16, 3))
-Y = np.arange(7) % 10
-cnn = CNN([3, 20, 10])
-A = cnn.forward(X)
-print("Forward")
-for a in A:
-    print("x".join(map(str, a.shape)))
-D = cnn.backward(Y, A)
-print("Backward")
-for d in D:
-    print("x".join(map(str, d.shape)))
-print("Backprop")
-cnn.backpropagation(X, Y)
+# X = np.zeros((7, 16, 16, 3))
+# Y = np.arange(7) % 10
+# cnn = CNN([3, 20, 10])
+# A = cnn.forward(X)
+# print("Forward")
+# for a in A:
+#     print("x".join(map(str, a.shape)))
+# D = cnn.backward(Y, A)
+# print("Backward")
+# for d in D:
+#     print("x".join(map(str, d.shape)))
+# print("Backprop")
+# cnn.backpropagation(X, Y)
+
+
+"""
+
+H, K, S -> (H - K + 1) // S = O
+
+...............
+.1.2.3.4.5.6.7.
+...............
+.8.9.0.1.2.3.4.
+...............
+
+S * (O - 1) + 1 + P
+
+S * (O - 1) + 1 + P - K + 1
+S * ( ( (H - K + 1) // S ) - 1 ) + 1 + P - K + 1=
+S * ( ( H - K + 1 * S) // S) + 1 + P - K + 1=
+H - K + 1 + 1 + P - K + 1 = H
+== > P + 2 - 2K = 0
+P = 2(K - 1)
+
+
+"""
+
+def convolution2d_backprop(W, D):
+    """Return dJ / dX[...] given D = dJ / d (X * W)[...]"""
+    k = 3
+    s = 2
+    b, h, w, c = D.shape
+    h1 = 1 + (h - 1) * s + 2 * (k - 1)
+    w1 = 1 + (w - 1) * s + 2 * (k - 1)
+    D1 = np.zeros((b, h1, w1, c))
+    D1[:, k - 1:s * h + k - 1:s, k - 1:s * w + k - 1:s, :] = D
+    W1 = W[::-1, ::-1, :, :].transpose(0, 1, 3, 2)
+    return convolution2d(D1, W1, s, s)
+
+
+def check_gradient(X, W, s=2):
+    b, h, w, c = X.shape
+    Y = convolution2d(X, W, s, s)
+    _, h1, w1, c1 = Y.shape
+    e = 1e-5
+    for k1 in range(c1):
+        for i1 in range(h1):
+            for j1 in range(w1):
+                DY = np.zeros_like(Y)
+                DY[0, i1, j1, k1] = 1
+                DX = convolution2d_backprop(W, DY)
+                for k in range(c):
+                    for i in range(h):
+                        for j in range(w):
+                            X1 = X.copy()
+                            X1[0, i, j, k] += e
+                            Y1 = convolution2d(X1, W, s, s)
+                            dY = (Y1[0, i1, j1, k1] - Y[0, i1, j1, k1]) / e
+                            if np.abs(dY - DX[0, i, j, k]) > 1e-4:
+                                print(i, j, k, i1, j1, k1, dY, DX[0, i, j, k])
+                            
+                
+
+X = np.random.randn(1, 7, 7, 1)
+W = np.random.randn(3, 3, 1, 1)
+Y = convolution2d(X, W, 1, 1)
+print(X.shape, W.shape, "->", Y.shape)
+DY = np.ones_like(Y)
+DX = convolution2d_backprop(W, DY)
+print(DY.shape, "->", DX.shape)
+
+check_gradient(X, W)
