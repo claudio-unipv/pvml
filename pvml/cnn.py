@@ -4,8 +4,6 @@ from mlp import relu, softmax
 
 # TODO:
 # - docstrings and comments
-# - check derivatives
-# - check invariance loss/batch size
 # - MNIST example
 #
 # https://medium.com/@mayank.utexas/backpropagation-for-convolution-with-strides-8137e4fc2710
@@ -97,18 +95,18 @@ class CNN:
             the list of computed derivatives, starting from output
             activations and back to the first hidden layer.
         """
-        delta = activations[-1].copy()
-        delta[np.arange(Y.shape[0]), Y] -= 1  # Subtract the one-hot vectors
+        d = activations[-1].copy()
+        d[np.arange(Y.shape[0]), Y] -= 1  # Subtract the one-hot vectors
         sz = activations[-2].shape[1] * activations[-2].shape[2]
-        delta /= sz
-        delta = delta[:, None, None, :].repeat(activations[-2].shape[1], 1)
-        delta = delta.repeat(activations[-2].shape[2], 2)
-        deltas = [delta]
+        d /= (sz * activations[-1].shape[0])
+        d = d[:, None, None, :].repeat(activations[-2].shape[1], 1)
+        d = d.repeat(activations[-2].shape[2], 2)
+        derivatives = [d]
         for W, X, s in zip(self.weights[:0:-1], activations[-3::-1], self.strides[:0:-1]):
-            delta = convolution_backprop(delta, W, X.shape[1], X.shape[2], s, s)
-            deltas.append(delta)
-            delta *= (X > 0).astype(int)  # derivative of relu
-        return deltas[::-1]
+            d = convolution_backprop(d, W, X.shape[1], X.shape[2], s, s)
+            derivatives.append(d)
+            d *= (X > 0).astype(int)  # derivative of relu
+        return derivatives[::-1]
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         """Backpropagation algorithm.
@@ -399,20 +397,52 @@ def _check_gradient():
 #         print("!!!")
 #         break
     
-X = np.random.randn(2, 17, 19, 3)
-k = 12
-Y = np.random.randint(0, k, (X.shape[0],))
-cnn = CNN([X.shape[3], 7, k], [5, 3], [4, 1])
-A = cnn.forward(X)
-for a in A:
-    print("x".join(map(str, a.shape)))
-D = cnn.backward(Y, A)
-print("<-")
-for d in D:
-    print("x".join(map(str, d.shape)))
-print("<->")
-cnn.backpropagation(X, Y)
+# X = np.random.randn(2, 17, 19, 3)
+# k = 12
+# Y = np.random.randint(0, k, (X.shape[0],))
+# cnn = CNN([X.shape[3], 7, k], [5, 3], [4, 1])
+# A = cnn.forward(X)
+# for a in A:
+#     print("x".join(map(str, a.shape)))
+# D = cnn.backward(Y, A)
+# print("<-")
+# for d in D:
+#     print("x".join(map(str, d.shape)))
+#     print("<->")
+# cnn.backpropagation(X, Y)
 
-X = np.random.randn(10, 28, 28, 3)
-Y = np.random.randint(0, k, (X.shape[0],))
-cnn.train(X, Y)
+# X = np.random.randn(100, 28, 28, 3)
+# Y = np.random.randint(0, k, (X.shape[0],))
+# cnn.train(X, Y)
+
+def check_grad():
+    A = cnn.forward(X)
+    probs = A[-1][np.arange(Y.shape[0]), Y]
+    L = -np.log(probs).mean()
+    D = cnn.backward(Y, A)
+    W = cnn.weights[0]
+    s = cnn.strides[0]
+    gw = convolution_derivative(X, D[0], W.shape[0], W.shape[1], s, s)
+    eps = 1e-4
+    W[1, 1, 1, 1] += eps
+    A1 = cnn.forward(X)
+    probs = A1[-1][np.arange(Y.shape[0]), Y]
+    L1 = -np.log(probs).mean()
+    print((L1 - L) / eps, gw[1, 1, 1, 1])
+
+def check_grad2():
+    A = cnn.forward(X)
+    probs = A[-1][np.arange(Y.shape[0]), Y]
+    L = -np.log(probs).mean()
+    D = cnn.backward(Y, A)
+    b = cnn.biases[0]
+    gb = D[0].sum(2).sum(1).sum(0)
+    eps = 1e-4
+    b[2] += eps
+    A1 = cnn.forward(X)
+    probs = A1[-1][np.arange(Y.shape[0]), Y]
+    L1 = -np.log(probs).mean()
+    print((L1 - L) / eps, gb[2])
+
+    
+# check_grad2()
