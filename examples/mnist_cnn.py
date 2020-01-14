@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
 
+
 import dataset
 import numpy as np
-import mlp
+import cnn
 import matplotlib.pyplot as plt
-
-
-def first_layer_image(weights):
-    count = weights.shape[1]
-    rows = max([min(x, count // x) for x in range(1, count // 2)
-                if count % x == 0])
-    cols = count // rows
-    im = weights.reshape(28, 28, rows, cols).transpose(2, 0, 3, 1)
-    im = im.reshape(28 * rows, -1)
-    return im
 
 
 def plot_errors(errors):
@@ -28,16 +19,18 @@ def plot_errors(errors):
 
 
 def show_weights(weights):
-    im = first_layer_image(weights[0])
+    weights = weights[0]
+    v = np.abs(weights).max()
+    count = weights.shape[-1]
+    rows = max([min(x, count // x) for x in range(1, count // 2)
+                if count % x == 0])
+    cols = count // rows
     plt.figure(2)
     plt.clf()
-    plt.subplot(1, len(weights), 1)
-    v = np.abs(im).max()
-    plt.imshow(im, cmap=plt.cm.seismic, vmin=-v, vmax=v)
-    for i in range(1, len(weights)):
-        plt.subplot(1, len(weights), i + 1)
-        v = np.abs(weights[i]).max()
-        plt.imshow(weights[i], cmap=plt.cm.seismic, vmin=-v, vmax=v)
+    for i in range(count):
+        plt.subplot(rows, cols, i + 1)
+        plt.imshow(weights[:, :, 0, i], cmap=plt.cm.seismic, vmin=-v,
+                   vmax=v)
     plt.title("Weights")
 
 
@@ -60,13 +53,21 @@ def show_confusion_matrix(Y, predictions):
 
 def main():
     Xtrain, Ytrain = dataset.load_dataset("mnist_train")
+    Xtrain = Xtrain.reshape(-1, 28, 28, 1) - 0.5
     Xtest, Ytest = dataset.load_dataset("mnist_test")
+    Xtest = Xtest.reshape(-1, 28, 28, 1) - 0.5
 
     plt.ion()
     batch_sz = 100
     epocs = 250
 
-    network = mlp.MLP([Xtrain.shape[1], 128, 10])
+    network = cnn.CNN([1, 16, 32, 64, 10], [7, 3, 3, 1], [2, 2, 1, 1])
+    A = network.forward(np.empty((1, 28, 28, 1)))
+    print("Neurons:", " -> ".join(("x".join(map(str, a.shape[1:]))) for
+                                  a in A))
+    parameters = (sum(w.size for w in network.weights) +
+                  sum(b.size for b in network.biases))
+    print(parameters, "parameters")
     errors = [[], []]
     for epoc in range(1, epocs + 1):
         steps = Xtrain.shape[0] // batch_sz
