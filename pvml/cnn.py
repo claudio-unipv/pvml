@@ -117,6 +117,10 @@ class CNN:
             d *= (X > 0).astype(int)  # derivative of relu
         return derivatives[::-1]
 
+    def loss(self, Y, P):
+        """Compute the average cross-entropy."""
+        return -np.log(P[np.arange(Y.shape[0]), Y]).mean()
+
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         """Backpropagation algorithm.
 
@@ -144,16 +148,15 @@ class CNN:
         """
         # Forward pass
         activations = self.forward(X)
-        # Compute the average cross entropy loss
-        probs = activations[-1][np.arange(Y.shape[0]), Y]
-        loss = -np.log(probs).mean()
+        loss = self.loss(Y, activations[-1])
+
         # Backward pass
         deltas = self.backward(Y, activations)
         # Update the parameters
-        for X, D, W, b, uw, ub, s in zip(activations, deltas,
+        for X, D, W, b, s, uw, ub in zip(activations, deltas,
                                          self.weights, self.biases,
-                                         self.update_w, self.update_b,
-                                         self.strides):
+                                         self.strides,
+                                         self.update_w, self.update_b):
             grad_b = D.sum(2).sum(1).sum(0)
             grad_W = _convolution_derivative(X, D, W.shape[0],
                                              W.shape[1], s, s)
@@ -432,99 +435,44 @@ def _convolution_derivative(X, D, kh, kw, sh, sw):
     return R.transpose(1, 2, 0, 3)
 
 
-def _check_gradient():
-    h = np.random.randint(1, 16)
-    w = np.random.randint(1, 16)
-    b = np.random.randint(1, 5)
-    c = np.random.randint(1, 5)
-    d = np.random.randint(1, 5)
-    kh = np.random.randint(1, h + 1)
-    kw = np.random.randint(1, w + 1)
-    sh = np.random.randint(1, kh + 2)
-    sw = np.random.randint(1, kw + 2)
-    X = np.random.randn(b, h, w, c)
-    W = np.random.randn(kh, kw, c, d)
-    Y = _convolution(X, W, sh, sw)
-    DY = np.random.randn(*Y.shape)
-    L = (Y * DY).sum()
-    eps = 1e-4
-    DX = _convolution_backprop(DY, W, X.shape[1], X.shape[2], sh, sw)
-    DXD = np.zeros_like(DX)
-    for bi in range(b):
-        for i in range(h):
-            for j in range(w):
-                for ci in range(c):
-                    X1 = X.copy()
-                    X1[bi, i, j, ci] += eps
-                    Y1 = _convolution(X1, W, sh, sw)
-                    L1 = (Y1 * DY).sum()
-                    DXD[bi, i, j, ci] = (L1 - L) / eps
-    return np.abs(DX - DXD).max()
+def _check_gradient(cnn, eps=1e-6, imsz=25, bsz=2):
+    """Numerical check gradient computations."""
+    insz = cnn.weights[0].shape[2]
+    outsz = cnn.weights[-1].shape[3]
+    X = np.random.randn(bsz, imsz, imsz, insz)
+    Y = np.random.randint(0, outsz, (bsz,))
+    A = cnn.forward(X)
+    D = cnn.backward(Y, A)
+    L = cnn.loss(Y, A[-1])
+    for XX, W, DD, s in zip(A, cnn.weights, D, cnn.strides):
+        grad_W = _convolution_derivative(XX, DD, W.shape[0],
+                                         W.shape[1], s, s)
+        GW = np.empty_like(W)
+        for idx in np.ndindex(*W.shape):
+            bak = W[idx]
+            W[idx] += eps
+            A1 = cnn.forward(X)
+            L1 = cnn.loss(Y, A1[-1])
+            W[idx] = bak
+            GW[idx] = (L1 - L) / eps
+        err = np.abs(GW - grad_W).max()
+        print(err, "OK" if err < 1e-4 else "")
+        assert err < 1e-4
+    for b, DD in zip(cnn.biases, D):
+        grad_b = DD.sum(2).sum(1).sum(0)
+        Gb = np.empty_like(b)
+        for idx in np.ndindex(*b.shape):
+            bak = b[idx]
+            b[idx] += eps
+            A1 = cnn.forward(X)
+            L1 = cnn.loss(Y, A1[-1])
+            b[idx] = bak
+            Gb[idx] = (L1 - L) / eps
+        err = np.abs(Gb - grad_b).max()
+        print(err, "OK" if err < 1e-4 else "")
+        assert err < 1e-4
 
 
-# X = np.random.randn(1, 7, 10, 1)
-# W = np.random.randn(1, 2, 1, 1)
-# s = 1
-# Y = convolution(X, W, s, s)
-# print(X.shape, W.shape, "->", Y.shape)
-# DY = np.ones_like(Y)
-# DX = convolution_backprop(DY, W, X.shape[1], X.shape[2], s, s)
-# print(DY.shape, "->", DX.shape)
-
-# for _ in range(10000):
-#     d = _check_gradient()
-#     print(d)
-#     if d > 1e-3:
-#         print("!!!")
-#         break
-
-# X = np.random.randn(2, 17, 19, 3)
-# k = 12
-# Y = np.random.randint(0, k, (X.shape[0],))
-# cnn = CNN([X.shape[3], 7, k], [5, 3], [4, 1])
-# A = cnn.forward(X)
-# for a in A:
-#     print("x".join(map(str, a.shape)))
-# D = cnn.backward(Y, A)
-# print("<-")
-# for d in D:
-#     print("x".join(map(str, d.shape)))
-#     print("<->")
-# cnn.backpropagation(X, Y)
-
-# X = np.random.randn(100, 28, 28, 3)
-# Y = np.random.randint(0, k, (X.shape[0],))
-# cnn.train(X, Y)
-
-# def check_grad():
-#     cnn = None
-#     A = cnn.forward(X)
-#     probs = A[-1][np.arange(Y.shape[0]), Y]
-#     L = -np.log(probs).mean()
-#     D = cnn.backward(Y, A)
-#     W = cnn.weights[0]
-#     s = cnn.strides[0]
-#     gw = _convolution_derivative(X, D[0], W.shape[0], W.shape[1], s, s)
-#     eps = 1e-4
-#     W[1, 1, 1, 1] += eps
-#     A1 = cnn.forward(X)
-#     probs = A1[-1][np.arange(Y.shape[0]), Y]
-#     L1 = -np.log(probs).mean()
-#     print((L1 - L) / eps, gw[1, 1, 1, 1])
-
-# def check_grad2():
-#     A = cnn.forward(X)
-#     probs = A[-1][np.arange(Y.shape[0]), Y]
-#     L = -np.log(probs).mean()
-#     D = cnn.backward(Y, A)
-#     b = cnn.biases[0]
-#     gb = D[0].sum(2).sum(1).sum(0)
-#     eps = 1e-4
-#     b[2] += eps
-#     A1 = cnn.forward(X)
-#     probs = A1[-1][np.arange(Y.shape[0]), Y]
-#     L1 = -np.log(probs).mean()
-#     print((L1 - L) / eps, gb[2])
-
-
-# check_grad2()
+if __name__ == "__main__":
+    cnn = CNN([3, 8, 7, 5], [5, 4, 3], [2, 2, 1])
+    _check_gradient(cnn)
