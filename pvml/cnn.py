@@ -235,6 +235,23 @@ class CNN:
             i += batch
         return losses
 
+    def save(self, filename):
+        """Save the network to the file."""
+        np.savez(filename, weights=self.weights, biases=self.biases,
+                 strides=self.strides)
+
+    @classmethod
+    def load(cls, filename):
+        """Create a new network from the data saved in the file."""
+        data = np.load(filename)
+        neurons = [w.shape[0] for w in data["weights"]]
+        neurons.append(data["weights"][-1].shape[1])
+        network = cls(neurons)
+        network.weights = data["weights"]
+        network.biases = data["biases"]
+        network.strides = data["strides"]
+        return network
+
 
 # The convolution operator and its derivatives are implemented as
 # described in the blog post:
@@ -443,23 +460,6 @@ def _check_gradient():
                     L1 = (Y1 * DY).sum()
                     DXD[bi, i, j, ci] = (L1 - L) / eps
     return np.abs(DX - DXD).max()
-
-    def save(self, filename):
-        """Save the network to the file."""
-        np.savez(filename, weights=self.weights, biases=self.biases,
-                 strides=self.strides)
-
-    @classmethod
-    def load(cls, filename):
-        """Create a new network from the data saved in the file."""
-        data = np.load(filename)
-        neurons = [w.shape[0] for w in data["weights"]]
-        neurons.append(data["weights"][-1].shape[1])
-        network = cls(neurons)
-        network.weights = data["weights"]
-        network.biases = data["biases"]
-        network.strides = data["strides"]
-        return network
 
 
 # X = np.random.randn(1, 7, 10, 1)
