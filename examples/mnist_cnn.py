@@ -59,9 +59,9 @@ def main():
 
     plt.ion()
     batch_sz = 100
-    epocs = 250
+    epocs = 75
 
-    network = cnn.CNN([1, 16, 32, 64, 10], [7, 3, 3, 1], [2, 2, 1, 1])
+    network = cnn.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1])
     A = network.forward(np.empty((1, 28, 28, 1)))
     print("Neurons:", " -> ".join(("x".join(map(str, a.shape[1:]))) for
                                   a in A))
@@ -71,7 +71,7 @@ def main():
     errors = [[], []]
     for epoc in range(1, epocs + 1):
         steps = Xtrain.shape[0] // batch_sz
-        network.train(Xtrain, Ytrain, lr=1e-4, lambda_=1e-5,
+        network.train(Xtrain, Ytrain, lr=1e-3, lambda_=1e-5,
                       steps=steps, batch=batch_sz)
         predictions = network.inference(Xtrain)[0]
         training_error = (predictions != Ytrain).mean()

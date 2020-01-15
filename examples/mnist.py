@@ -85,7 +85,7 @@ def main():
         show_confusion_matrix(Ytest, predictions)
         plt.pause(0.05)
     network.save("mnist_network.npz")
-    np.savetxt("errors-l1.txt", np.array(errors).T, fmt="%.2f")
+    np.savetxt("mnist_errors.txt", np.array(errors).T, fmt="%.2f")
     plt.ioff()
     plt.show()
 
