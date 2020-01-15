@@ -76,17 +76,21 @@ class MLP:
         Returns
         -------
         list
-            the list of computed derivatives, starting from output
-            activations and back to the first hidden layer.
+            the list of computed derivatives, one for each layer.
         """
-        delta = activations[-1].copy()
-        delta[np.arange(Y.shape[0]), Y] -= 1  # Subtract the one-hot vectors
-        deltas = [delta]
+        d = activations[-1].copy()
+        d[np.arange(Y.shape[0]), Y] -= 1  # Subtract the one-hot vectors
+        d /= Y.shape[0]
+        derivatives = [d]
         for W, X in zip(self.weights[:0:-1], activations[-2::-1]):
-            delta = delta @ W.T
-            deltas.append(delta)
-            delta *= (X > 0).astype(int)  # derivative of relu
-        return deltas[::-1]
+            d = d @ W.T
+            derivatives.append(d)
+            d *= (X > 0).astype(int)  # derivative of relu
+        return derivatives[::-1]
+
+    def loss(self, Y, P):
+        """Compute the average cross-entropy."""
+        return -np.log(P[np.arange(Y.shape[0]), Y]).mean()
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         """Backpropagation algorithm.
@@ -110,22 +114,20 @@ class MLP:
         Returns
         -------
         float
-            the average loss obtained in the forward step..
+            the average loss obtained in the forward step.
 
         """
         # Forward pass
         activations = self.forward(X)
-        # Compute the average cross entropy loss
-        probs = activations[-1][np.arange(Y.shape[0]), Y]
-        loss = -np.log(probs).mean()
+        loss = self.loss(Y, activations[-1])
         # Backward pass
-        deltas = self.backward(Y, activations)
+        derivatives = self.backward(Y, activations)
         # Update the parameters
-        for X, D, W, b, uw, ub in zip(activations, deltas,
+        for X, D, W, b, uw, ub in zip(activations, derivatives,
                                       self.weights, self.biases,
                                       self.update_w, self.update_b):
-            grad_W = (X.T @ D) / X.shape[0] + 0.5 * lambda_ * W
-            grad_b = D.mean(0)
+            grad_W = (X.T @ D) + 0.5 * lambda_ * W
+            grad_b = D.sum(0)
             uw *= momentum
             uw -= lr * grad_W
             W += uw
@@ -224,7 +226,48 @@ def relu(x):
     return np.maximum(x, 0)
 
 
+def _check_gradient(mlp, eps=1e-6, bsz=2):
+    """Numerical check gradient computations."""
+    insz = mlp.weights[0].shape[0]
+    outsz = mlp.weights[-1].shape[1]
+    X = np.random.randn(bsz, insz)
+    Y = np.random.randint(0, outsz, (bsz,))
+    A = mlp.forward(X)
+    D = mlp.backward(Y, A)
+    L = mlp.loss(Y, A[-1])
+    for XX, W, DD in zip(A, mlp.weights, D):
+        grad_W = (XX.T @ DD)
+        GW = np.empty_like(W)
+        for idx in np.ndindex(*W.shape):
+            bak = W[idx]
+            W[idx] += eps
+            A1 = mlp.forward(X)
+            L1 = mlp.loss(Y, A1[-1])
+            W[idx] = bak
+            GW[idx] = (L1 - L) / eps
+        err = np.abs(GW - grad_W).max()
+        print(err, "OK" if err < 1e-4 else "")
+        assert err < 1e-4
+    for b, DD in zip(mlp.biases, D):
+        grad_b = DD.sum(0)
+        Gb = np.empty_like(b)
+        for idx in np.ndindex(*b.shape):
+            bak = b[idx]
+            b[idx] += eps
+            A1 = mlp.forward(X)
+            L1 = mlp.loss(Y, A1[-1])
+            b[idx] = bak
+            Gb[idx] = (L1 - L) / eps
+        err = np.abs(Gb - grad_b).max()
+        print(err, "OK" if err < 1e-4 else "")
+        assert err < 1e-4
+
+
 if __name__ == "__main__":
+    mlp = MLP([3, 7, 2, 10])
+    _check_gradient(mlp)
+    import sys
+    sys.exit()
     import demo
 
     class Demo(demo.Demo):

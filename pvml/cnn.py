@@ -151,9 +151,9 @@ class CNN:
         loss = self.loss(Y, activations[-1])
 
         # Backward pass
-        deltas = self.backward(Y, activations)
+        derivatives = self.backward(Y, activations)
         # Update the parameters
-        for X, D, W, b, s, uw, ub in zip(activations, deltas,
+        for X, D, W, b, s, uw, ub in zip(activations, derivatives,
                                          self.weights, self.biases,
                                          self.strides,
                                          self.update_w, self.update_b):
