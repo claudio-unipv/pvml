@@ -45,7 +45,7 @@ def cross_entropy(Y, P):
 
 
 #!begin2
-def logreg_train(X, Y, lr=1e-3, steps=1000):
+def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):
     """Train a binary classifier based on logistic regression.
 
     Parameters
@@ -69,17 +69,15 @@ def logreg_train(X, Y, lr=1e-3, steps=1000):
         loss value after each training step.
     """
     m, n = X.shape
-    w = np.zeros(n)
-    b = 0
-    loss = np.empty(steps)
+    w = (init_w if init_w is not None else np.zeros(n))
+    b = init_b
     for step in range(steps):
         P = logreg_inference(X, w, b)
-        loss[step] = cross_entropy(Y, P).mean()
         grad_w = ((P - Y) @ X) / m
         grad_b = (P - Y).mean()
         w -= lr * grad_w
         b -= lr * grad_b
-    return w, b, loss
+    return w, b
 #!end2
 
 
