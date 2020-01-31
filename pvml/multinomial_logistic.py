@@ -1,7 +1,6 @@
 import numpy as np
 
 
-#!begin1
 def multinomial_logreg_inference(X, W, b):
     """Predict class probabilities.
 
@@ -41,7 +40,31 @@ def softmax(Z):
     return E / E.sum(1, keepdims=True)
 
 
-def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000):
+def one_hot_vectors(Y, classes=None):
+    """Convert an array of labels into a matrix of one-hot vectors.
+
+    Parameters
+    ----------
+    Y : ndarray, shape (m,)
+         labels.
+    classes : int
+         number of classes.  If None it is deduced from Y.
+
+    Returns
+    -------
+    ndarray, shape (m, classes)
+         One-hot vectors representing the labels Y.
+    """
+    if classes is None:
+        classes = Y.max() + 1
+    m = Y.shape[0]
+    H = np.zeros((m, classes))
+    H[np.arange(m), Y] = 1
+    return H
+
+
+def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000,
+                             init_w=None, init_b=None):
     """Train a classifier based on multinomial logistic regression.
 
     Parameters
@@ -56,31 +79,30 @@ def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000):
         learning rate
     steps : int
         number of training steps
+    init_w : ndarray, shape (n, k)
+        initial weights (None for zero initialization)
+    init_b : ndarray, shape (k,)
+        initial biases (None for zero initialization)
 
     Returns
     -------
     w : ndarray, shape (n, k)
         learned weights (one vector per class).
-    b : ndarray, shape (k, )
-        vectod of biases.
-    loss : ndarray, shape (steps,)
-        loss value after each training step.
+    b : ndarray, shape (k,)
+        vector of biases.
     """
     m, n = X.shape
     k = Y.max() + 1
-    W = np.zeros((n, k))
-    b = np.zeros(k)
-    H = np.zeros((m, k))  # Matrix of one-hot vectors
-    H[np.arange(m), Y] = 1
-    loss = np.empty(steps)
+    W = (init_w if init_w is not None else np.zeros((n, k)))
+    b = (init_b if init_b is not None else np.zeros(k))
+    H = one_hot_vectors(Y, k)
     for step in range(steps):
         P = multinomial_logreg_inference(X, W, b)
-        loss[step] = cross_entropy(H, P) + lambda_ * (W ** 2).sum()
         grad_W = (X.T @ (P - H)) / m + 2 * lambda_ * W
         grad_b = (P - H).mean(0)
         W -= lr * grad_W
         b -= lr * grad_b
-    return W, b, loss
+    return W, b
 
 
 def cross_entropy(H, P):
@@ -99,25 +121,3 @@ def cross_entropy(H, P):
         average cross entropy.
     """
     return -(H * np.log(P)).sum(1).mean()
-#!end1
-
-
-if __name__ == "__main__":
-    import demo
-
-    class Demo(demo.Demo):
-        def train(self, X, Y):
-            w, b, losses = multinomial_logreg_train(X, Y,
-                                                    self.args.lambda_,
-                                                    lr=self.args.lr,
-                                                    steps=self.args.steps)
-            self.w = w
-            self.b = b
-            return losses
-
-        def inference(self, X):
-            p = multinomial_logreg_inference(X, self.w, self.b)
-            Y = np.argmax(p, 1)
-            return Y
-
-    Demo().run()
