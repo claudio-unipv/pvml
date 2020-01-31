@@ -1,5 +1,5 @@
 import numpy as np
-from multinomial_logistic import softmax
+from .multinomial_logistic import softmax
 
 
 class MLP:

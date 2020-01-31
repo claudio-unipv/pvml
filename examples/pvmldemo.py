@@ -364,6 +364,33 @@ class Perceptron(DemoModel):
         return ret
 
 
+@_register_model("mlp")
+class MultiLayerPerceptron(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.net = None
+        self.hidden = list(map(int, args.mlp_hidden.split(",")))
+        self.momentum = 0.99  # !!!
+        self.batch = 20  # !!!
+
+    def train_step(self, X, Y, steps):
+        if self.net is None:
+            counts = [X.shape[1]] + self.hidden + [Y.max() + 1]
+            self.net = pvml.MLP(counts)
+        ret = self.net.train(X, Y, lr=self.lr, lambda_=self.lambda_,
+                             momentum=self.momentum,steps=steps,
+                             batch=self.batch)
+            def train(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99,
+              steps=10000, batch=None):
+
+        self.w, self.b = ret
+
+    def inference(self, X):
+        ret = pvml.perceptron_inference(X, self.w, self.b)
+        labels, scores = ret
+        return ret
+
+
 def main():
     args = parse_args()
     np.random.seed(args.seed)

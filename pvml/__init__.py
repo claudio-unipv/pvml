@@ -6,3 +6,4 @@ from .multinomial_logistic import *
 from .gda import *
 from .naivebayes import *
 from .perceptron import *
+from .mlp import *
