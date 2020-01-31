@@ -1,8 +1,6 @@
 import numpy as np
-from svm import hinge_loss
 
 
-#!begin1
 def ksvm_inference(X, Xtrain, alpha, b, kfun, kparam):
     """SVM prediction of the class labels.
 
@@ -64,7 +62,8 @@ def kernel(X1, X2, kfun, kparam):
     raise ValueError("Unknown kernel ('%s')" % kfun)
 
 
-def ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000):
+def ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
+               init_alpha=None, init_b=0):
     """Train a binary non-linear SVM classifier.
 
     Parameters
@@ -83,56 +82,29 @@ def ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000):
         learning rate
     steps : int
         number of training steps
+    init_alpha : ndarray, shape (m,)
+        initial coefficients (None for zero initialization)
+    init_b : float
+        initial bias
 
     Returns
     -------
-    alpha : ndarray, shape (t,)
+    alpha : ndarray, shape (m,)
         vector of learned coefficients.
     b : float
         learned bias.
-    loss : ndarray, shape (steps,)
-        loss value after each training iteration.
     """
     K = kernel(X, X, kfun, kparam)
     m, n = X.shape
-    alpha = np.zeros(m)
-    b = 0
+    alpha = (init_alpha if init_alpha is not None else np.zeros(m))
+    b = (init_b if init_b is not None else 0)
     C = (2 * Y) - 1
-    loss = np.empty(steps)
     for step in range(steps):
         ka = K @ alpha
         logits = ka + b
-        loss[step] = hinge_loss(Y, logits) + 0.5 * lambda_ * alpha.T @ ka
         hinge_diff = -C * ((C * logits) < 1)
         grad_alpha = (hinge_diff @ K) / m + lambda_ * ka
         grad_b = hinge_diff.mean()
         alpha -= lr * grad_alpha
         b -= lr * grad_b
-    return alpha, b, loss
-#!end1
-
-
-if __name__ == "__main__":
-    import demo
-
-    class Demo(demo.Demo):
-        def train(self, X, Y):
-            alpha, b, loss = ksvm_train(X, Y, self.args.kernel,
-                                        self.args.kparam,
-                                        self.args.lambda_,
-                                        lr=self.args.lr,
-                                        steps=self.args.steps)
-            self.Xtrain = X
-            self.alpha = alpha
-            self.b = b
-            return loss
-
-        def inference(self, X):
-            return ksvm_inference(X, self.Xtrain, self.alpha, self.b,
-                                  self.args.kernel, self.args.kparam)[0]
-    app = Demo()
-    app.parser.add_argument("-k", "--kernel", choices=["rbf", "polynomial"],
-                            default="rbf", help="Kernel function")
-    app.parser.add_argument("-g", "--kparam", type=float, default=3,
-                            help="Parameter of the kernel")
-    app.run()
+    return alpha, b

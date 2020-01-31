@@ -22,7 +22,7 @@ def logreg_inference(X, w, b):
     return 1 / (1 + np.exp(-logits))
 
 
-def cross_entropy(Y, P):
+def binary_cross_entropy(Y, P):
     """Average cross entropy.
 
     Parameters
