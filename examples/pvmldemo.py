@@ -30,6 +30,12 @@ def parse_args():
       help="Kernel function")
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
+    a("--mlp-hidden", default="",
+      help="Comma-separated list of number of hidden neurons")
+    a("--mlp-momentum", type=float, default=0.99,
+      help="Momentum term (%(default)g)")
+    a("--mlp-batch", type=int,
+      help="Batch size (default: use all training data)")
     a("train", help="training set")
     return parser.parse_args()
 
@@ -118,7 +124,7 @@ class DemoModel:
             v = v.argmax(1)
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, values, cmap=plt.cm.coolwarm)
-            
+
     def train_step(self, X, Y, steps):
         pass
 
@@ -272,7 +278,7 @@ class OmoscedasticGDA(DemoModel):
         self.w, self.b = pvml.ogda_train(X, Y)
 
     def inference(self, X):
-        labels, scores= pvml.ogda_inference(X, self.w, self.b)
+        labels, scores = pvml.ogda_inference(X, self.w, self.b)
         return labels, scores
 
 
@@ -286,7 +292,7 @@ class MinimumDistanceClassifier(DemoModel):
         self.means = pvml.mindist_train(X, Y)
 
     def inference(self, X):
-        labels, scores= pvml.mindist_inference(X, self.means)
+        labels, scores = pvml.mindist_inference(X, self.means)
         return labels, scores
 
 
@@ -309,7 +315,7 @@ class CategoricalNaiveBayes(DemoModel):
 
 
 @_register_model("multinomial_nb")
-class CategoricalNaiveBayes(DemoModel):
+class MultinomialNaiveBayes(DemoModel):
     def __init__(self, args):
         super().__init__(args, False, False)
         self.w = None
@@ -327,7 +333,7 @@ class CategoricalNaiveBayes(DemoModel):
 
 
 @_register_model("gaussian_nb")
-class CategoricalNaiveBayes(DemoModel):
+class GaussianNaiveBayes(DemoModel):
     def __init__(self, args):
         super().__init__(args, False, False)
         self.means = None
@@ -369,26 +375,24 @@ class MultiLayerPerceptron(DemoModel):
     def __init__(self, args):
         super().__init__(args, False)
         self.net = None
-        self.hidden = list(map(int, args.mlp_hidden.split(",")))
-        self.momentum = 0.99  # !!!
-        self.batch = 20  # !!!
+        self.hidden = [int(x) for x in args.mlp_hidden.split(",") if x.strip()]
+        self.momentum = args.mlp_momentum
+        self.batch = args.mlp_batch
 
     def train_step(self, X, Y, steps):
         if self.net is None:
             counts = [X.shape[1]] + self.hidden + [Y.max() + 1]
             self.net = pvml.MLP(counts)
-        ret = self.net.train(X, Y, lr=self.lr, lambda_=self.lambda_,
-                             momentum=self.momentum,steps=steps,
-                             batch=self.batch)
-            def train(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99,
-              steps=10000, batch=None):
-
-        self.w, self.b = ret
+        self.net.train(X, Y, lr=self.lr, lambda_=self.lambda_,
+                       momentum=self.momentum, steps=steps,
+                       batch=self.batch)
 
     def inference(self, X):
-        ret = pvml.perceptron_inference(X, self.w, self.b)
-        labels, scores = ret
-        return ret
+        labels, scores = self.net.inference(X)
+        return labels, scores
+
+    def loss(self, Y, P):
+        return self.net.loss(Y, P)
 
 
 def main():
