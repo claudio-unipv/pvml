@@ -1,5 +1,5 @@
 import numpy as np
-from mlp import relu, softmax
+from .mlp import relu, softmax
 
 
 class CNN:
@@ -140,19 +140,9 @@ class CNN:
         momentum : float
             momentum coefficient.
 
-        Returns
-        -------
-        float
-            the average loss obtained in the forward step.
-
         """
-        # Forward pass
         activations = self.forward(X)
-        loss = self.loss(Y, activations[-1])
-
-        # Backward pass
         derivatives = self.backward(Y, activations)
-        # Update the parameters
         for X, D, W, b, s, uw, ub in zip(activations, derivatives,
                                          self.weights, self.biases,
                                          self.strides,
@@ -167,7 +157,6 @@ class CNN:
             ub *= momentum
             ub -= lr * grad_b
             b += ub
-        return loss
 
     def inference(self, X):
         """Compute the predictions of the network.
@@ -213,30 +202,20 @@ class CNN:
             size of the minibatch used in each step.  When None all
             the data is used in each step.
 
-        Returns
-        -------
-        list
-            the list of loss values obtained during training.
-
         """
         m = X.shape[0]
         if batch is None:
             batch = X.shape[0]
-        losses = []
         i = m
         indices = np.arange(m)
         for step in range(steps):
             if i + batch > m:
                 i = 0
                 np.random.shuffle(indices)
-            loss = self.backpropagation(X[indices[i:i + batch], :, :, :],
-                                        Y[indices[i:i + batch]],
-                                        lr=lr,
-                                        lambda_=lambda_,
-                                        momentum=momentum)
-            losses.append(loss)
+            self.backpropagation(X[indices[i:i + batch], :, :, :],
+                                 Y[indices[i:i + batch]], lr=lr,
+                                 lambda_=lambda_, momentum=momentum)
             i += batch
-        return losses
 
     def save(self, filename):
         """Save the network to the file."""

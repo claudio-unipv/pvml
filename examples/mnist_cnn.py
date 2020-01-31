@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 
-import dataset
+import pvml
 import numpy as np
-import cnn
 import matplotlib.pyplot as plt
 
 
@@ -52,16 +51,16 @@ def show_confusion_matrix(Y, predictions):
 
 
 def main():
-    Xtrain, Ytrain = dataset.load_dataset("mnist_train")
+    Xtrain, Ytrain = pvml.load_dataset("mnist_train")
     Xtrain = Xtrain.reshape(-1, 28, 28, 1) - 0.5
-    Xtest, Ytest = dataset.load_dataset("mnist_test")
+    Xtest, Ytest = pvml.load_dataset("mnist_test")
     Xtest = Xtest.reshape(-1, 28, 28, 1) - 0.5
 
     plt.ion()
     batch_sz = 100
     epocs = 75
 
-    network = cnn.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1])
+    network = pvml.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1])
     A = network.forward(np.empty((1, 28, 28, 1)))
     print("Neurons:", " -> ".join(("x".join(map(str, a.shape[1:]))) for
                                   a in A))

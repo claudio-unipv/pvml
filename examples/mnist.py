@@ -1,8 +1,7 @@
- #!/usr/bin/env python3
+#!/usr/bin/env python3
 
-import dataset
+import pvml
 import numpy as np
-import mlp
 import matplotlib.pyplot as plt
 
 
@@ -59,14 +58,14 @@ def show_confusion_matrix(Y, predictions):
 
 
 def main():
-    Xtrain, Ytrain = dataset.load_dataset("mnist_train")
-    Xtest, Ytest = dataset.load_dataset("mnist_test")
+    Xtrain, Ytrain = pvml.load_dataset("mnist_train")
+    Xtest, Ytest = pvml.load_dataset("mnist_test")
 
     plt.ion()
     batch_sz = 100
     epocs = 250
 
-    network = mlp.MLP([Xtrain.shape[1], 128, 64, 10])
+    network = pvml.MLP([Xtrain.shape[1], 128, 64, 10])
     errors = [[], []]
     for epoc in range(1, epocs + 1):
         steps = Xtrain.shape[0] // batch_sz

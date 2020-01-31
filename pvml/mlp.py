@@ -112,11 +112,8 @@ class MLP:
             momentum coefficient.
 
         """
-        # Forward pass
         activations = self.forward(X)
-        # Backward pass
         derivatives = self.backward(Y, activations)
-        # Update the parameters
         for X, D, W, b, uw, ub in zip(activations, derivatives,
                                       self.weights, self.biases,
                                       self.update_w, self.update_b):
