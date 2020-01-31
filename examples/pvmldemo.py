@@ -93,7 +93,7 @@ class DemoModel:
                 print("{} {:.2f}% {:.2f}%".format(step, train_acc[-1],
                                                   test_acc[-1]))
             plt.pause(0.0001)
-            if not plt.fignum_exists(0) or not plt.fignum_exists(1):
+            if not plt.fignum_exists(0):
                 break
 
     def plot_data(self, X, Y, resolution=200):
@@ -108,6 +108,10 @@ class DemoModel:
         if v.ndim == 1:
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, [0.5], cmap=plt.cm.coolwarm)
+        elif v.shape[1] == 2:
+            v = v[:, 0] - v[:, 1]
+            v = v.reshape(gx.shape)
+            plt.contour(gx, gy, v, [0.0], cmap=plt.cm.coolwarm)
         else:
             values = np.arange(v.shape[1] - 1) + 0.5
             v = v.argmax(1)
@@ -235,6 +239,54 @@ class MultinomialLogisticRegressionModel(DemoModel):
     def loss(self, Y, P):
         H = pvml.one_hot_vectors(Y, P.shape[1])
         return pvml.cross_entropy(H, P)
+
+
+@_register_model("hgda")
+class HeteroscedasticGDA(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.means = None
+        self.icovs = None
+        self.priors = None
+
+    def train_step(self, X, Y, steps):
+        ret = pvml.hgda_train(X, Y)
+        self.means, self.invcovs, self.priors = ret
+
+    def inference(self, X):
+        ret = pvml.hgda_inference(X, self.means, self.invcovs,
+                                  self.priors)
+        labels, scores = ret
+        return labels, scores
+
+
+@_register_model("ogda")
+class OmoscedasticGDA(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.w = None
+        self.b = None
+
+    def train_step(self, X, Y, steps):
+        self.w, self.b = pvml.ogda_train(X, Y)
+
+    def inference(self, X):
+        labels, scores= pvml.ogda_inference(X, self.w, self.b)
+        return labels, scores
+
+
+@_register_model("mindist")
+class MinimumDistanceClassifier(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.means = None
+
+    def train_step(self, X, Y, steps):
+        self.means = pvml.mindist_train(X, Y)
+
+    def inference(self, X):
+        labels, scores= pvml.mindist_inference(X, self.means)
+        return labels, scores
 
 
 def main():
