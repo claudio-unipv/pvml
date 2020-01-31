@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+ #!/usr/bin/env python3
 
 import dataset
 import numpy as np
@@ -66,7 +66,7 @@ def main():
     batch_sz = 100
     epocs = 250
 
-    network = mlp.MLP([Xtrain.shape[1], 128, 10])
+    network = mlp.MLP([Xtrain.shape[1], 128, 64, 10])
     errors = [[], []]
     for epoc in range(1, epocs + 1):
         steps = Xtrain.shape[0] // batch_sz
