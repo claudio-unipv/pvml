@@ -346,6 +346,24 @@ class CategoricalNaiveBayes(DemoModel):
         return ret
 
 
+@_register_model("perceptron")
+class Perceptron(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.w = None
+        self.b = 0
+
+    def train_step(self, X, Y, steps):
+        ret = pvml.perceptron_train(X, Y, steps, init_w=self.w,
+                                    init_b=self.b)
+        self.w, self.b = ret
+
+    def inference(self, X):
+        ret = pvml.perceptron_inference(X, self.w, self.b)
+        labels, scores = ret
+        return ret
+
+
 def main():
     args = parse_args()
     np.random.seed(args.seed)
