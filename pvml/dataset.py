@@ -241,7 +241,8 @@ def _mnist_test_dataset():
     return X, Y
 
 
-_FASHION_MNIST_URL = "http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/"
+_FASHION_MNIST_URL = ("http://fashion-mnist.s3-website.eu-central-1" +
+                      ".amazonaws.com/")
 
 
 @_register("fashion_mnist_train")
