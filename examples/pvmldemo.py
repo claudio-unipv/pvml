@@ -35,10 +35,11 @@ def parse_args():
 
 
 class DemoModel:
-    def __init__(self, args, binary):
+    def __init__(self, args, binary, iterative=True):
         self.lr = args.lr
         self.lambda_ = args.lambda_
         self.binary = binary
+        self.iterative = iterative
         self.plot_every = args.plot_every
 
     def train(self, X, Y, Xtest, Ytest, steps):
@@ -93,7 +94,7 @@ class DemoModel:
                 print("{} {:.2f}% {:.2f}%".format(step, train_acc[-1],
                                                   test_acc[-1]))
             plt.pause(0.0001)
-            if not plt.fignum_exists(0):
+            if not self.iterative or not plt.fignum_exists(0):
                 break
 
     def plot_data(self, X, Y, resolution=200):
@@ -244,7 +245,7 @@ class MultinomialLogisticRegressionModel(DemoModel):
 @_register_model("hgda")
 class HeteroscedasticGDA(DemoModel):
     def __init__(self, args):
-        super().__init__(args, False)
+        super().__init__(args, False, False)
         self.means = None
         self.icovs = None
         self.priors = None
@@ -263,7 +264,7 @@ class HeteroscedasticGDA(DemoModel):
 @_register_model("ogda")
 class OmoscedasticGDA(DemoModel):
     def __init__(self, args):
-        super().__init__(args, False)
+        super().__init__(args, False, False)
         self.w = None
         self.b = None
 
@@ -278,7 +279,7 @@ class OmoscedasticGDA(DemoModel):
 @_register_model("mindist")
 class MinimumDistanceClassifier(DemoModel):
     def __init__(self, args):
-        super().__init__(args, False)
+        super().__init__(args, False, False)
         self.means = None
 
     def train_step(self, X, Y, steps):
@@ -287,6 +288,62 @@ class MinimumDistanceClassifier(DemoModel):
     def inference(self, X):
         labels, scores= pvml.mindist_inference(X, self.means)
         return labels, scores
+
+
+@_register_model("categorical_nb")
+class CategoricalNaiveBayes(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.probs = None
+        self.priors = None
+
+    def train_step(self, X, Y, steps):
+        ret = pvml.categorical_naive_bayes_train(X, Y)
+        self.probs, self.priors = ret
+
+    def inference(self, X):
+        ret = pvml.categorical_naive_bayes_inference(X, self.probs,
+                                                     self.priors)
+        labels, scores = ret
+        return ret
+
+
+@_register_model("multinomial_nb")
+class CategoricalNaiveBayes(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.w = None
+        self.b = None
+
+    def train_step(self, X, Y, steps):
+        ret = pvml.multinomial_naive_bayes_train(X, Y)
+        self.w, self.b = ret
+
+    def inference(self, X):
+        ret = pvml.multinomial_naive_bayes_inference(X, self.w,
+                                                     self.b)
+        labels, scores = ret
+        return ret
+
+
+@_register_model("gaussian_nb")
+class CategoricalNaiveBayes(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.means = None
+        self.vars = None
+        self.priors = None
+
+    def train_step(self, X, Y, steps):
+        ret = pvml.gaussian_naive_bayes_train(X, Y)
+        self.means, self.vars, self.priors = ret
+
+    def inference(self, X):
+        ret = pvml.gaussian_naive_bayes_inference(X, self.means,
+                                                  self.vars,
+                                                  self.priors)
+        labels, scores = ret
+        return ret
 
 
 def main():

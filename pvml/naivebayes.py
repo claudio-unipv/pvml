@@ -1,7 +1,6 @@
 import numpy as np
 
 
-#!begin1
 def categorical_naive_bayes_train(X, Y, priors=None):
     """Train naive Bayes classifier for categorical data.
 
@@ -68,11 +67,9 @@ def categorical_naive_bayes_inference(X, probs, priors):
         for j in range(n):
             scores[:, c] += np.log(probs[c, j, X[:, j]])
     labels = np.argmax(scores, 1)
-    return labels
-#!end1
+    return labels, scores
 
 
-#!begin2
 def multinomial_naive_bayes_train(X, Y, priors=None):
     """Train a multinomial naive Bayes classifier.
 
@@ -130,11 +127,9 @@ def multinomial_naive_bayes_inference(X, W, b):
     """
     scores = X @ W + b.T
     labels = np.argmax(scores, 1)
-    return labels
-#!end2
+    return labels, scores
 
 
-#!begin3
 def gaussian_naive_bayes_train(X, Y, priors=None):
     """Train a Gaussian Naive Bayes classifier.
 
@@ -194,39 +189,4 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     scores = -0.5 * diffs.sum(2) - 0.5 * np.log(vars).sum(1)[None, :]
     scores += np.log(priors)[None, :]
     labels = np.argmax(scores, 1)
-    return labels
-#!end3
-
-
-if __name__ == "__main__":
-    import demo
-
-    class Demo(demo.Demo):
-        def train(self, X, Y):
-            if self.args.model[0] == "m":
-                self.W, self.b = multinomial_naive_bayes_train(X, Y)
-            elif self.args.model[0] == "c":
-                self.pr, self.priors = categorical_naive_bayes_train(X, Y)
-            else:
-                self.m, self.v, self.priors = gaussian_naive_bayes_train(X, Y)
-
-        def inference(self, X):
-            if self.args.model[0] == "m":
-                return multinomial_naive_bayes_inference(X, self.W, self.b)
-            elif self.args.model[0] == "c":
-                return categorical_naive_bayes_inference(X, self.pr,
-                                                         self.priors)
-            else:
-                return gaussian_naive_bayes_inference(X, self.m,
-                                                      self.v,
-                                                      self.priors)
-
-    app = Demo()
-    app.parser.add_argument("-m", "--model",
-                            choices=["categorical",
-                                     "multinomial",
-                                     "gaussian",
-                                     "c", "m", "g"],
-                            default="multinomial",
-                            help="Statistical model")
-    app.run()
+    return labels, scores
