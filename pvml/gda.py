@@ -67,7 +67,7 @@ def hgda_inference(X, means, invcovs, priors):
         q = ((diff @ invcovs[c, :, :]) * diff).sum(1)
         scores[:, c] = 0.5 * q - 0.5 * np.log(det) - np.log(priors[c])
     labels = np.argmin(scores, 1)
-    return labels, scores
+    return labels, -scores
 
 
 def ogda_train(X, Y, priors=None):
@@ -128,7 +128,7 @@ def ogda_inference(X, W, b):
     """
     scores = X @ W + b.T
     labels = np.argmin(scores, 1)
-    return labels, scores
+    return labels, -scores
 
 
 def mindist_train(X, Y):
