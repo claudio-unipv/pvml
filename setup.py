@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="pvml-test",
+    name="pvml",
     version="0.0.1",
     author="Claudio Cusano",
     author_email="claudio.cusano@unipv.it",
