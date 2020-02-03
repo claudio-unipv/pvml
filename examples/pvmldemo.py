@@ -62,38 +62,17 @@ class DemoModel:
             Z, P = self.inference(X)
             train_acc.append(100 * (Z == Y).mean())
             train_loss.append(self.loss(Y, P))
-            plt.figure(0)
-            plt.clf()
-            plt.title("Accuracy (%)")
-            plt.xlabel("Iterations")
-            plt.plot(iterations, train_acc)
-            if train_loss[-1] is not None:
-                plt.figure(1)
-                plt.clf()
-                plt.title("Loss")
-                plt.xlabel("Iterations")
-                plt.plot(iterations, train_loss)
             if Xtest is not None:
                 Ztest, Ptest = self.inference(Xtest)
                 test_acc.append(100 * (Ztest == Ytest).mean())
                 test_loss.append(self.loss(Ytest, Ptest))
-                plt.figure(0)
-                plt.plot(iterations, test_acc)
-                plt.legend(["train", "test"])
-                if test_loss[-1] is not None:
-                    plt.figure(1)
-                    plt.plot(iterations, test_loss)
-                    plt.legend(["train", "test"])
+            self.plot_curves(0, "Accuracy (%)", iterations, train_acc,
+                             test_acc)
+            self.plot_curves(1, "Loss", iterations, train_loss, test_loss)
             if X.shape[1] == 2:
-                plt.figure(2)
-                plt.clf()
-                plt.title("Training set")
-                self.plot_data(X, Y)
+                self.plot_data(2, "Training set", X, Y)
                 if Xtest is not None:
-                    plt.figure(3)
-                    plt.clf()
-                    plt.title("Test set")
-                    self.plot_data(Xtest, Ytest)
+                    self.plot_data(3, "Test set", Xtest, Ytest)
             if Xtest is None:
                 print("{} {:.2f}%".format(step, train_acc[-1]))
             else:
@@ -103,7 +82,25 @@ class DemoModel:
             if not self.iterative or not plt.fignum_exists(0):
                 break
 
-    def plot_data(self, X, Y, resolution=200):
+    def plot_curves(self, fignum, title, iters, train, test):
+        train = [x for x in train if x is not None]
+        test = [x for x in test if x is not None]
+        if not train and not test:
+            return
+        plt.figure(fignum)
+        plt.clf()
+        plt.title(title)
+        plt.xlabel("Iterations")
+        if train:
+            plt.plot(iters, train)
+        if test:
+            plt.plot(iters, test)
+            plt.legend(["train", "test"])
+
+    def plot_data(self, fignum, title, X, Y, resolution=200):
+        plt.figure(fignum)
+        plt.clf()
+        plt.title(title)
         plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.coolwarm)
         xmin, xmax = plt.gca().get_xlim()
         ymin, ymax = plt.gca().get_ylim()
