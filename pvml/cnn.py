@@ -78,7 +78,7 @@ class CNN:
         """
         activations = [X]
         for W, b, s in zip(self.weights, self.biases, self.strides):
-            X = _convolution(X, W, s, s) + b[None, None, None, :]
+            X = _convolution(X, W, s, s) + b
             if W is not self.weights[-1]:
                 X = relu(X)
             else:
@@ -412,46 +412,3 @@ def _convolution_derivative(X, D, kh, kw, sh, sw):
     X = X[:, :h + kh - 1, :w + kw - 1, :]
     R = _convolution(X, D, 1, 1)
     return R.transpose(1, 2, 0, 3)
-
-
-def _check_gradient(cnn, eps=1e-6, imsz=25, bsz=2):
-    """Numerical check gradient computations."""
-    insz = cnn.weights[0].shape[2]
-    outsz = cnn.weights[-1].shape[3]
-    X = np.random.randn(bsz, imsz, imsz, insz)
-    Y = np.random.randint(0, outsz, (bsz,))
-    A = cnn.forward(X)
-    D = cnn.backward(Y, A)
-    L = cnn.loss(Y, A[-1])
-    for XX, W, DD, s in zip(A, cnn.weights, D, cnn.strides):
-        grad_W = _convolution_derivative(XX, DD, W.shape[0],
-                                         W.shape[1], s, s)
-        GW = np.empty_like(W)
-        for idx in np.ndindex(*W.shape):
-            bak = W[idx]
-            W[idx] += eps
-            A1 = cnn.forward(X)
-            L1 = cnn.loss(Y, A1[-1])
-            W[idx] = bak
-            GW[idx] = (L1 - L) / eps
-        err = np.abs(GW - grad_W).max()
-        print(err, "OK" if err < 1e-4 else "")
-        assert err < 1e-4
-    for b, DD in zip(cnn.biases, D):
-        grad_b = DD.sum(2).sum(1).sum(0)
-        Gb = np.empty_like(b)
-        for idx in np.ndindex(*b.shape):
-            bak = b[idx]
-            b[idx] += eps
-            A1 = cnn.forward(X)
-            L1 = cnn.loss(Y, A1[-1])
-            b[idx] = bak
-            Gb[idx] = (L1 - L) / eps
-        err = np.abs(Gb - grad_b).max()
-        print(err, "OK" if err < 1e-4 else "")
-        assert err < 1e-4
-
-
-if __name__ == "__main__":
-    cnn = CNN([3, 8, 7, 5], [5, 4, 3], [2, 2, 1])
-    _check_gradient(cnn)
