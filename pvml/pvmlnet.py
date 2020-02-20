@@ -23,7 +23,7 @@ _LAYERS = [
 ]
 
 
-def pvmlnet(pretrained=False):
+def make_pvmlnet(pretrained=False):
     channels = [3] + [x[0] for x in _LAYERS]
     kernels = [x[1] for x in _LAYERS]
     strides = [x[2] for x in _LAYERS]    
@@ -33,7 +33,7 @@ def pvmlnet(pretrained=False):
 
 if __name__ == "__main__":
     import numpy as np
-    net = pvmlnet(pretrained=False)
+    net = make_pvmlnet(pretrained=False)
     parameters = sum(w.size for w in net.weights)
     parameters += sum(b.size for b in net.biases)
     print("{} parameters".format(parameters))
