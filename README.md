@@ -11,6 +11,6 @@ If your objective is to obtain good results quickly, please consider using a mor
 
 # Installation
 
-The library is availablt on PIP an can be installed as follows
+The library is available on [PYPI](https://pypi.org/project/pvml/) and can be installed as follows
 
 ```pip3 install pvml```
