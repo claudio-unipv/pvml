@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pvml",
-    version="0.0.1",
+    version="0.0.2",
     author="Claudio Cusano",
     author_email="claudio.cusano@unipv.it",
     description="A small and simple machine learning library",
