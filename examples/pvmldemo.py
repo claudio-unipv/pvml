@@ -4,6 +4,7 @@ import pvml
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from itertools import zip_longest
 
 
 def parse_args():
@@ -47,6 +48,8 @@ class DemoModel:
         self.binary = binary
         self.iterative = iterative
         self.plot_every = args.plot_every
+        self.draw = not args.nodraw
+        self.dump = args.dump
 
     def train(self, X, Y, Xtest, Ytest, steps):
         st = self.plot_every
@@ -79,13 +82,19 @@ class DemoModel:
                 print("{} {:.2f}% {:.2f}%".format(step, train_acc[-1],
                                                   test_acc[-1]))
             plt.pause(0.0001)
-            if not self.iterative or not plt.fignum_exists(0):
+            if not self.iterative or (self.draw and not plt.fignum_exists(0)):
                 break
-
+        if self.dump:
+            with open("dump.txt", "wt") as f:
+                for t in zip_longest(iterations, train_acc, test_acc,
+                             train_loss, test_loss):
+                    row = (x if x is not None else "" for x in t)
+                    print("{} {} {} {} {}".format(*row), file=f)
+                
     def plot_curves(self, fignum, title, iters, train, test):
         train = [x for x in train if x is not None]
         test = [x for x in test if x is not None]
-        if not train and not test:
+        if not self.draw or (not train and not test):
             return
         plt.figure(fignum)
         plt.clf()
@@ -98,6 +107,8 @@ class DemoModel:
             plt.legend(["train", "test"])
 
     def plot_data(self, fignum, title, X, Y, resolution=200):
+        if not self.draw:
+            return
         plt.figure(fignum)
         plt.clf()
         plt.title(title)
