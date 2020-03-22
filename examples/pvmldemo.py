@@ -19,6 +19,8 @@ def parse_args():
     a("-p", "--plot-every", type=int, default=100,
       help="frequency of plotting training data (%(default)d)")
     a("-t", "--test", help="test set")
+    a("-f", "--features", help="Comma-separated feature columns")
+    a("-c", "--class", type=int, default=-1, dest="class_", help="Class column")
     a("--seed", type=int, default=171956,
       help="Random seed")
     a("--dump", action="store_true",
@@ -403,12 +405,28 @@ class MultiLayerPerceptron(DemoModel):
         return self.net.loss(Y, P)
 
 
+def select_features(X, Y, features, class_):
+    if features is None and class_ == -1:
+        return X, Y
+    if features is None:
+        features = np.arange(X.shape[1] - 1)
+    else:
+        features = np.array(list(map(int, features.split(","))))
+    data = np.concatenate((X, Y[:, None]), 1)
+    print(features)
+    X = data[:, features]
+    Y = data[:, class_]
+    return X, Y
+    
+
 def main():
     args = parse_args()
     np.random.seed(args.seed)
     X, Y = pvml.load_dataset(args.train)
+    X, Y = select_features(X, Y, args.features, args.class_)
     if args.test:
         Xtest, Ytest = pvml.load_dataset(args.test)
+        Xtest, Ytest = select_features(Xtest, Ytest, args.features, args.class_)
     else:
         Xtest, Ytest = None, None
     model = _MODELS[args.model](args)
