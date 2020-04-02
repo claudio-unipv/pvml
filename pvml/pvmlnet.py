@@ -26,7 +26,7 @@ _LAYERS = [
 def make_pvmlnet(pretrained=False):
     channels = [3] + [x[0] for x in _LAYERS]
     kernels = [x[1] for x in _LAYERS]
-    strides = [x[2] for x in _LAYERS]    
+    strides = [x[2] for x in _LAYERS]
     net = _CNN(channels, kernels, strides)
     return net
 

@@ -8,4 +8,5 @@ from .naivebayes import *
 from .perceptron import *
 from .mlp import *
 from .cnn import *
+from .normalization import *
 from .pvmlnet import *

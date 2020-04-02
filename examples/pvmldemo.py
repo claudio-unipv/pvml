@@ -7,6 +7,16 @@ import argparse
 from itertools import zip_longest
 
 
+_NORMALIZATION = {
+    "none": lambda X, Xtest: (X if Xtest is None else X, Xtest),
+    "meanvar": pvml.meanvar_normalization,
+    "minmax": pvml.minmax_normalization,
+    "l2": pvml.l2_normalization,
+    "l1": pvml.l1_normalization,
+    "whitening": pvml.whitening
+}
+
+
 def parse_args():
     parser = argparse.ArgumentParser("Classification demo")
     a = parser.add_argument
@@ -20,7 +30,10 @@ def parse_args():
       help="frequency of plotting training data (%(default)d)")
     a("-t", "--test", help="test set")
     a("-f", "--features", help="Comma-separated feature columns")
-    a("-c", "--class", type=int, default=-1, dest="class_", help="Class column")
+    a("-n", "--normalization", choices=_NORMALIZATION.keys(),
+      default="none", help="Feature normalization")
+    a("-c", "--class", type=int, default=-1, dest="class_",
+      help="Class column")
     a("--seed", type=int, default=171956,
       help="Random seed")
     a("--dump", action="store_true",
@@ -89,10 +102,10 @@ class DemoModel:
         if self.dump:
             with open("dump.txt", "wt") as f:
                 for t in zip_longest(iterations, train_acc, test_acc,
-                             train_loss, test_loss):
+                                     train_loss, test_loss):
                     row = (x if x is not None else "" for x in t)
                     print("{} {} {} {} {}".format(*row), file=f)
-                
+
     def plot_curves(self, fignum, title, iters, train, test):
         train = [x for x in train if x is not None]
         test = [x for x in test if x is not None]
@@ -417,7 +430,12 @@ def select_features(X, Y, features, class_):
     X = data[:, features]
     Y = data[:, class_]
     return X, Y
-    
+
+
+def normalization(X, Xtest, fun):
+    r = _NORMALIZATION[fun](X, Xtest)
+    return r, None if Xtest is None else r
+
 
 def main():
     args = parse_args()
@@ -426,9 +444,11 @@ def main():
     X, Y = select_features(X, Y, args.features, args.class_)
     if args.test:
         Xtest, Ytest = pvml.load_dataset(args.test)
-        Xtest, Ytest = select_features(Xtest, Ytest, args.features, args.class_)
+        Xtest, Ytest = select_features(Xtest, Ytest, args.features,
+                                       args.class_)
     else:
         Xtest, Ytest = None, None
+    X, Xtest = normalization(X, Xtest, args.normalization)
     model = _MODELS[args.model](args)
     if model.binary:
         Y = (Y > 0).astype(int)
