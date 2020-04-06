@@ -8,9 +8,10 @@ from itertools import zip_longest
 
 
 _NORMALIZATION = {
-    "none": lambda X, Xtest: (X if Xtest is None else X, Xtest),
+    "none": lambda X, Xtest: (X if Xtest is None else (X, Xtest)),
     "meanvar": pvml.meanvar_normalization,
     "minmax": pvml.minmax_normalization,
+    "maxabs": pvml.maxabs_normalization,
     "l2": pvml.l2_normalization,
     "l1": pvml.l1_normalization,
     "whitening": pvml.whitening
@@ -426,7 +427,6 @@ def select_features(X, Y, features, class_):
     else:
         features = np.array(list(map(int, features.split(","))))
     data = np.concatenate((X, Y[:, None]), 1)
-    print(features)
     X = data[:, features]
     Y = data[:, class_]
     return X, Y
@@ -434,7 +434,7 @@ def select_features(X, Y, features, class_):
 
 def normalization(X, Xtest, fun):
     r = _NORMALIZATION[fun](X, Xtest)
-    return r, None if Xtest is None else r
+    return (r, None) if Xtest is None else r
 
 
 def main():

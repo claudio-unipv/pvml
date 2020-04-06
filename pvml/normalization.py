@@ -1,6 +1,39 @@
 import numpy as np
 
 
+def meanvar_normalization(X, Xtest=None):
+    """Normalize features using moments.
+
+    Linearly normalize each input feature to make it have zero mean
+    and unit variance.  Test features, when given, are scaled using
+    the statistics computed on X.
+
+    Parameters
+    ----------
+    X : ndarray, shape (m, n)
+         input features (one row per feature vector).
+    Xtest : ndarray, shape (mtest, n) or None
+         test features (one row per feature vector).
+
+    Returns
+    -------
+    ndarray, shape (m, n)
+        normalized features.
+    ndarray, shape (mtest, n)
+        normalized test features (returned only when Xtest is not None).
+
+    """
+    mu = X.mean(0, keepdims=True)
+    sigma = X.std(0, keepdims=True)
+    X = X - mu
+    X /= np.maximum(sigma, 1e-15)  # 1e-15 avoids division by zero
+    if Xtest is None:
+        return X
+    Xtest = Xtest - mu
+    Xtest /= np.maximum(sigma, 1e-15)
+    return X, Xtest
+
+
 def minmax_normalization(X, Xtest=None):
     """Scale features in the [0, 1] range.
 
@@ -34,12 +67,12 @@ def minmax_normalization(X, Xtest=None):
     return X, Xtest
 
 
-def meanvar_normalization(X, Xtest=None):
-    """Normalize features using moments.
+def maxabs_normalization(X, Xtest=None):
+    """Scale features in the [-1, 1] range.
 
-    Linearly normalize each input feature to make it have zero mean
-    and unit variance.  Test features, when given, are scaled using
-    the statistics computed on X.
+    Linearly normalize each input feature in the [-1, 1] range by
+    dividing them by the maximum absolute value.  Test features, when
+    given, are scaled using the statistics computed on X.
 
     Parameters
     ----------
@@ -56,14 +89,12 @@ def meanvar_normalization(X, Xtest=None):
         normalized test features (returned only when Xtest is not None).
 
     """
-    mu = X.mean(0, keepdims=True)
-    sigma = X.std(0, keepdims=True)
-    X = X - mu
-    X /= np.maximum(sigma, 1e-15)  # 1e-15 avoids division by zero
+    # 1e-15 avoids division by zero
+    amax = np.maximum(np.abs(X).max(0, keepdims=True), 1e-15)
+    X = X / amax
     if Xtest is None:
         return X
-    Xtest = Xtest - mu
-    Xtest /= np.maximum(sigma, 1e-15)
+    Xtest = Xtest / amax
     return X, Xtest
 
 
