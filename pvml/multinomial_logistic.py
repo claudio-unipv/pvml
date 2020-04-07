@@ -40,7 +40,7 @@ def softmax(Z):
     return E / E.sum(1, keepdims=True)
 
 
-def one_hot_vectors(Y, classes=None):
+def one_hot_vectors(Y, classes):
     """Convert an array of labels into a matrix of one-hot vectors.
 
     Parameters
@@ -55,8 +55,6 @@ def one_hot_vectors(Y, classes=None):
     ndarray, shape (m, classes)
          One-hot vectors representing the labels Y.
     """
-    if classes is None:
-        classes = Y.max() + 1
     m = Y.shape[0]
     H = np.zeros((m, classes))
     H[np.arange(m), Y] = 1
