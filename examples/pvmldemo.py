@@ -272,6 +272,81 @@ class MultinomialLogisticRegressionModel(DemoModel):
         return pvml.cross_entropy(H, P)
 
 
+@_register_model("ovr_svm")
+class OvrSVMModel(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.w = None
+        self.b = None
+        self.k = None
+
+    def train_step(self, X, Y, steps):
+        if self.k is None:
+            self.k = Y.max() + 1
+            self.w = np.zeros((X.shape[1], self.k))
+            self.b = np.zeros(self.k)
+        for c in range(self.k):
+            Y1 = (Y == c)
+            ret = pvml.svm_train(X, Y1, lr=self.lr, lambda_=self.lambda_,
+                                 steps=steps, init_w=self.w[:, c],
+                                 init_b=self.b[c])
+            self.w[:, c], self.b[c] = ret
+
+    def inference(self, X):
+        logits = X @ self.w + self.b.T
+        labels = logits.argmax(1)
+        return labels, logits
+
+    def loss(self, Y, P):
+        l = 0
+        for c in range(self.k):
+            l += pvml.hinge_loss((Y == c), P[:, c])
+        return l
+
+
+@_register_model("ovo_svm")
+class OvoSVMModel(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.classifiers = None
+        self.k = None
+
+    def init_classifiers(self, n, k):
+        self.classifiers = {}
+        for c0 in range(k):
+            for c1 in range(c0 + 1, k):
+                w = np.zeros(n)
+                b = 0
+                self.classifiers[(c0, c1)] = (w, b)
+        
+    def train_step(self, X, Y, steps):
+        if self.k is None:
+            self.k = Y.max() + 1
+            self.init_classifiers(X.shape[1], self.k)
+        for c0 in range(self.k):
+            for c1 in range(c0 + 1, self.k):
+                # Build a training subset
+                subset = (np.logical_or(Y == c0, Y == c1)).nonzero()[0]
+                Xbin = X[subset, :]
+                Ybin = (Y[subset] == c1)
+                # Train the classifier
+                w, b = self.classifiers[(c0, c1)]
+                w, b = pvml.svm_train(Xbin, Ybin, lr=self.lr, lambda_=self.lambda_,
+                                     steps=steps, init_w=w, init_b=b)
+                self.classifiers[(c0, c1)] = (w, b)
+
+    def inference(self, X):
+        votes = np.zeros((X.shape[0], self.k))
+        for c0 in range(self.k):
+            for c1 in range(c0 + 1, self.k):
+                w, b = self.classifiers[(c0, c1)]
+                pred = pvml.svm_inference(X, w, b)[0]
+                votes[pred == 0, c0] += 1
+                votes[pred == 1, c1] += 1
+        labels = votes.argmax(1)
+        return labels, votes
+
+
 @_register_model("hgda")
 class HeteroscedasticGDA(DemoModel):
     def __init__(self, args):
