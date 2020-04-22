@@ -14,7 +14,8 @@ _NORMALIZATION = {
     "maxabs": pvml.maxabs_normalization,
     "l2": pvml.l2_normalization,
     "l1": pvml.l1_normalization,
-    "whitening": pvml.whitening
+    "whitening": pvml.whitening,
+    "pca" : pvml.pca
 }
 
 
@@ -47,6 +48,7 @@ def parse_args():
       help="Kernel function")
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
+    a("--knn-k", type=int, default=1, help="KNN neighbors")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -447,7 +449,6 @@ class GaussianNaiveBayes(DemoModel):
         ret = pvml.gaussian_naive_bayes_inference(X, self.means,
                                                   self.vars,
                                                   self.priors)
-        labels, scores = ret
         return ret
 
 
@@ -465,9 +466,25 @@ class Perceptron(DemoModel):
 
     def inference(self, X):
         ret = pvml.perceptron_inference(X, self.w, self.b)
-        labels, scores = ret
         return ret
 
+
+@_register_model("knn")
+class KNN(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.X = None
+        self.Y = None
+        self.k = args.knn_k
+
+    def train_step(self, X, Y, steps):
+        self.X = X.copy()
+        self.Y = Y.copy()
+
+    def inference(self, X):
+        ret = pvml.knn_inference(X, self.X, self.Y, self.k)
+        return ret
+    
 
 @_register_model("mlp")
 class MultiLayerPerceptron(DemoModel):

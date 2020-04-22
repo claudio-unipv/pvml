@@ -158,12 +158,12 @@ def l1_normalization(X, Xtest=None):
     return X, Xtest
 
 
-def whitening(X, Xtest):
+def whitening(X, Xtest=None):
     """Whitening transform.
 
     Linearly transform features to make it have zero mean, unit
     variance and null covariance.  Test features, when given, are
-    scaled using the statistics computed on X.
+    trandformed using the statistics computed on X.
 
     Parameters
     ----------
