@@ -23,7 +23,7 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
          minimum number of output components.
     retvar : float
          minimum fraction of total variance retained in the output
-         components. 
+         components.
 
     Returns
     -------
@@ -41,7 +41,7 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
     order = np.argsort(-evals)
     evals = evals[order]
     # Determine the components to retain
-    k = 1 + (np.cumsum(evals) >= retvar *  evals.sum()).nonzero()[0][0]
+    k = 1 + (np.cumsum(evals) >= retvar * evals.sum()).nonzero()[0][0]
     print(k)
     k = max(k, mincomponents)
     w = evecs[:, order[:k]]  # 1e-15 avoids div. by zero
