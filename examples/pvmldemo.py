@@ -48,7 +48,7 @@ def parse_args():
       help="Kernel function")
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
-    a("--knn-k", type=int, default=1, help="KNN neighbors")
+    a("--knn-k", type=int, default=0, help="KNN neighbors (default auto)")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -480,6 +480,10 @@ class KNN(DemoModel):
     def train_step(self, X, Y, steps):
         self.X = X.copy()
         self.Y = Y.copy()
+        if self.k < 1:
+            print("Select K... ", end="", flush=True)
+            self.k, acc = pvml.knn_select_k(X, Y)
+            print("{} ({:.3f}%)".format(self.k, acc * 100))
 
     def inference(self, X):
         ret = pvml.knn_inference(X, self.X, self.Y, self.k)
