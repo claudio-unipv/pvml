@@ -42,13 +42,10 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
     evals = evals[order]
     # Determine the components to retain
     k = 1 + (np.cumsum(evals) >= retvar * evals.sum()).nonzero()[0][0]
-    print(k)
     k = max(k, mincomponents)
     w = evecs[:, order[:k]]  # 1e-15 avoids div. by zero
     # Transform the data
     X = (X - mu) @ w
-    print(X.mean())
-    print(np.cov(X.T))
     if Xtest is None:
         return X
     Xtest = (Xtest - mu) @ w
