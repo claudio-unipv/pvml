@@ -455,7 +455,7 @@ class GaussianNaiveBayes(DemoModel):
 @_register_model("perceptron")
 class Perceptron(DemoModel):
     def __init__(self, args):
-        super().__init__(args, False)
+        super().__init__(args, True)
         self.w = None
         self.b = 0
 
