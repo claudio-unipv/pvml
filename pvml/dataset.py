@@ -205,7 +205,7 @@ def _load_mnist_set(filename, features_url, labels_url):
             Y = data[8:].astype(np.int32)
 
     try:
-        np.savez(filename, X=X, Y=Y)
+        np.savez_compressed(filename, X=X, Y=Y)
         print("Dataset saved to '{}'".format(filename), file=sys.stderr)
     except Exception as e:
         print("Failed to save the data set to '{}' ({})".format(filename, e))
