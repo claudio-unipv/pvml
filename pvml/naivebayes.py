@@ -97,8 +97,7 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     k = Y.max() + 1
     probs = np.empty((k, n))
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        counts = X[indices, :].sum(0)
+        counts = X[Y == c, :].sum(0)
         tot = counts.sum()
         probs[c, :] = (counts + 1) / (tot + n)  # with Laplacian smoothing)
     if priors is None:
