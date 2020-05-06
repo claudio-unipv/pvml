@@ -119,7 +119,7 @@ class MLP:
         for X, D, W, b, uw, ub in zip(activations, derivatives,
                                       self.weights, self.biases,
                                       self.update_w, self.update_b):
-            grad_W = (X.T @ D) + 0.5 * lambda_ * W
+            grad_W = (X.T @ D) + lambda_ * W
             grad_b = D.sum(0)
             uw *= momentum
             uw -= lr * grad_W
