@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pvml",
-    version="0.0.4",
+    version="0.0.5",
     author="Claudio Cusano",
     author_email="claudio.cusano@unipv.it",
     description="A small and simple machine learning library",
@@ -24,3 +24,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
 )
+
+
+# python3 setup.py sdist bdist_wheel
+# python3 -m twine upload dist/*

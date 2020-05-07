@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
+def pca(X, *Xtest, mincomponents=1, retvar=0.95):
     """Principal Component Analysis.
 
     Perform PCA dimensionality reduction.  The number of output
@@ -17,8 +17,8 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
     ----------
     X : ndarray, shape (m, n)
          input features (one row per feature vector).
-    Xtest : ndarray, shape (mtest, n) or None
-         test features (one row per feature vector).
+    Xtest : ndarray, shape (mtest, n)
+         zero or more arrays of test features (one row per feature vector).
     mincomponents : int
          minimum number of output components.
     retvar : float
@@ -30,7 +30,7 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
     ndarray, shape (m, output_n)
         normalized features.
     ndarray, shape (mtest, output_n)
-        normalized test features (returned only when Xtest is not None).
+        normalized test features (one for each array in Xtest).
 
     """
     # Compute the moments
@@ -46,7 +46,7 @@ def pca(X, Xtest=None, mincomponents=1, retvar=0.95):
     w = evecs[:, order[:k]]  # 1e-15 avoids div. by zero
     # Transform the data
     X = (X - mu) @ w
-    if Xtest is None:
+    if not Xtest:
         return X
-    Xtest = (Xtest - mu) @ w
-    return X, Xtest
+    Xtest = tuple((Xt - mu) @ w for Xt in Xtest)
+    return (X,) + Xtest
