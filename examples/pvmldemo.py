@@ -49,6 +49,11 @@ def parse_args():
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
     a("--knn-k", type=int, default=0, help="KNN neighbors (default auto)")
+    a("--classtree-minsize", type=int, default=10,
+      help="Classification tree minimum node size (%(default)d)")
+    a("--classtree-diversity", default="gini",
+      choices=["gini", "entropy", "error"],
+      help="Classification tree diversity function (%(default)s)")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -450,6 +455,22 @@ class GaussianNaiveBayes(DemoModel):
         ret = pvml.gaussian_naive_bayes_inference(X, self.means,
                                                   self.vars,
                                                   self.priors)
+        return ret
+
+
+@_register_model("classtree")
+class ClassificationTree(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.tree = pvml.ClassificationTree()
+        self.minsize = args.classtree_minsize
+        self.diversity = args.classtree_diversity
+
+    def train_step(self, X, Y, steps):
+        self.tree.train(X, Y, minsize=self.minsize, diversity=self.diversity)
+
+    def inference(self, X):
+        ret = self.tree.inference(X)
         return ret
 
 
