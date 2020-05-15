@@ -6,6 +6,7 @@ from .multinomial_logistic import *
 from .gda import *
 from .naivebayes import *
 from .nearest_neighbor import *
+from .classtree import *
 from .perceptron import *
 from .mlp import *
 from .cnn import *
