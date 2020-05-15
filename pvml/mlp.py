@@ -196,7 +196,7 @@ class MLP:
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        data = np.load(filename)
+        data = np.load(filename, allow_pickle=True)
         neurons = [w.shape[0] for w in data["weights"]]
         neurons.append(data["weights"][-1].shape[1])
         network = cls(neurons)

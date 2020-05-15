@@ -189,7 +189,7 @@ _IRIS_TXT = """5.1 3.5 0 4.9 3 0 4.7 3.2 0 4.6 3.1 0 5 3.6 0 5.4 3.9 0 4.6 3.4 0
 
 def _load_mnist_set(filename, features_url, labels_url):
     try:
-        data = np.load(filename)
+        data = np.load(filename, allow_pickle=True)
         return data["X"], data["Y"]
     except FileNotFoundError:
         pass
