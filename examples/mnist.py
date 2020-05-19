@@ -21,7 +21,7 @@ def plot_errors(errors):
     plt.plot(errors[0])
     plt.plot(errors[1])
     plt.legend(["Training", "Test"])
-    plt.xlabel("Epocs")
+    plt.xlabel("Epochs")
     plt.ylabel("Error (%)")
     plt.title("Classification error")
 
@@ -63,11 +63,11 @@ def main():
 
     plt.ion()
     batch_sz = 100
-    epocs = 250
+    epochs = 250
 
     network = pvml.MLP([Xtrain.shape[1], 128, 64, 10])
     errors = [[], []]
-    for epoc in range(1, epocs + 1):
+    for epoch in range(1, epochs + 1):
         steps = Xtrain.shape[0] // batch_sz
         network.train(Xtrain, Ytrain, lr=1e-4, lambda_=1e-5,
                       steps=steps, batch=batch_sz)
@@ -77,8 +77,8 @@ def main():
         test_error = (predictions != Ytest).mean()
         errors[0].append(100 * training_error)
         errors[1].append(100 * test_error)
-        msg = "Epoc {}, Training err. {:.2f}, Test err. {:.2f}"
-        print(msg.format(epoc, 100 * training_error, 100 * test_error))
+        msg = "Epoch {}, Training err. {:.2f}, Test err. {:.2f}"
+        print(msg.format(epoch, 100 * training_error, 100 * test_error))
         plot_errors(errors)
         show_weights(network.weights)
         show_confusion_matrix(Ytest, predictions)
