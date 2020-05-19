@@ -8,13 +8,14 @@ from itertools import zip_longest
 
 
 _NORMALIZATION = {
-    "none": lambda X, Xtest: (X if Xtest is None else (X, Xtest)),
+    "none": lambda *X: (X[0] if len(X) == 1 else X),
     "meanvar": pvml.meanvar_normalization,
     "minmax": pvml.minmax_normalization,
     "maxabs": pvml.maxabs_normalization,
     "l2": pvml.l2_normalization,
     "l1": pvml.l1_normalization,
-    "whitening": pvml.whitening
+    "whitening": pvml.whitening,
+    "pca": pvml.pca
 }
 
 
@@ -47,6 +48,12 @@ def parse_args():
       help="Kernel function")
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
+    a("--knn-k", type=int, default=0, help="KNN neighbors (default auto)")
+    a("--classtree-minsize", type=int, default=10,
+      help="Classification tree minimum node size (%(default)d)")
+    a("--classtree-diversity", default="gini",
+      choices=["gini", "entropy", "error"],
+      help="Classification tree diversity function (%(default)s)")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -298,10 +305,10 @@ class OvrSVMModel(DemoModel):
         return labels, logits
 
     def loss(self, Y, P):
-        l = 0
+        tot_loss = 0
         for c in range(self.k):
-            l += pvml.hinge_loss((Y == c), P[:, c])
-        return l
+            tot_loss += pvml.hinge_loss((Y == c), P[:, c])
+        return tot_loss
 
 
 @_register_model("ovo_svm")
@@ -318,7 +325,7 @@ class OvoSVMModel(DemoModel):
                 w = np.zeros(n)
                 b = 0
                 self.classifiers[(c0, c1)] = (w, b)
-        
+
     def train_step(self, X, Y, steps):
         if self.k is None:
             self.k = Y.max() + 1
@@ -331,8 +338,9 @@ class OvoSVMModel(DemoModel):
                 Ybin = (Y[subset] == c1)
                 # Train the classifier
                 w, b = self.classifiers[(c0, c1)]
-                w, b = pvml.svm_train(Xbin, Ybin, lr=self.lr, lambda_=self.lambda_,
-                                     steps=steps, init_w=w, init_b=b)
+                w, b = pvml.svm_train(Xbin, Ybin, lr=self.lr,
+                                      lambda_=self.lambda_, steps=steps,
+                                      init_w=w, init_b=b)
                 self.classifiers[(c0, c1)] = (w, b)
 
     def inference(self, X):
@@ -447,14 +455,29 @@ class GaussianNaiveBayes(DemoModel):
         ret = pvml.gaussian_naive_bayes_inference(X, self.means,
                                                   self.vars,
                                                   self.priors)
-        labels, scores = ret
+        return ret
+
+
+@_register_model("classtree")
+class ClassificationTree(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.tree = pvml.ClassificationTree()
+        self.minsize = args.classtree_minsize
+        self.diversity = args.classtree_diversity
+
+    def train_step(self, X, Y, steps):
+        self.tree.train(X, Y, minsize=self.minsize, diversity=self.diversity)
+
+    def inference(self, X):
+        ret = self.tree.inference(X)
         return ret
 
 
 @_register_model("perceptron")
 class Perceptron(DemoModel):
     def __init__(self, args):
-        super().__init__(args, False)
+        super().__init__(args, True)
         self.w = None
         self.b = 0
 
@@ -465,7 +488,27 @@ class Perceptron(DemoModel):
 
     def inference(self, X):
         ret = pvml.perceptron_inference(X, self.w, self.b)
-        labels, scores = ret
+        return ret
+
+
+@_register_model("knn")
+class KNN(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False, False)
+        self.X = None
+        self.Y = None
+        self.k = args.knn_k
+
+    def train_step(self, X, Y, steps):
+        self.X = X.copy()
+        self.Y = Y.copy()
+        if self.k < 1:
+            print("Select K... ", end="", flush=True)
+            self.k, acc = pvml.knn_select_k(X, Y)
+            print("{} ({:.3f}%)".format(self.k, acc * 100))
+
+    def inference(self, X):
+        ret = pvml.knn_inference(X, self.X, self.Y, self.k)
         return ret
 
 
@@ -508,8 +551,10 @@ def select_features(X, Y, features, class_):
 
 
 def normalization(X, Xtest, fun):
-    r = _NORMALIZATION[fun](X, Xtest)
-    return (r, None) if Xtest is None else r
+    if Xtest is None:
+        return _NORMALIZATION[fun](X), None
+    else:
+        return _NORMALIZATION[fun](X, Xtest)
 
 
 def main():

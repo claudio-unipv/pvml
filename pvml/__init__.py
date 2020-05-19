@@ -5,8 +5,11 @@ from .ksvm import *
 from .multinomial_logistic import *
 from .gda import *
 from .naivebayes import *
+from .nearest_neighbor import *
+from .classtree import *
 from .perceptron import *
 from .mlp import *
 from .cnn import *
 from .normalization import *
+from .pca import *
 from .pvmlnet import *

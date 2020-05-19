@@ -24,8 +24,8 @@ def perceptron_train(X, Y, steps=10000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    w = np.zeros(X.shape[1])
-    b = 0
+    w = (init_w if init_w is not None else np.zeros(X.shape[1]))
+    b = init_b
     for step in range(steps):
         errors = 0
         for i in range(X.shape[0]):

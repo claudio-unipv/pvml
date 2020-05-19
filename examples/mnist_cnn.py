@@ -12,7 +12,7 @@ def plot_errors(errors):
     plt.plot(errors[0])
     plt.plot(errors[1])
     plt.legend(["Training", "Test"])
-    plt.xlabel("Epocs")
+    plt.xlabel("Epochs")
     plt.ylabel("Error (%)")
     plt.title("Classification error")
 
@@ -52,13 +52,19 @@ def show_confusion_matrix(Y, predictions):
 
 def main():
     Xtrain, Ytrain = pvml.load_dataset("mnist_train")
-    Xtrain = Xtrain.reshape(-1, 28, 28, 1) - 0.5
+    Xtrain = Xtrain.reshape(-1, 28, 28, 1)
     Xtest, Ytest = pvml.load_dataset("mnist_test")
-    Xtest = Xtest.reshape(-1, 28, 28, 1) - 0.5
+    Xtest = Xtest.reshape(-1, 28, 28, 1)
 
+    # meanvar normalization (use the same statistics for all the pixels)
+    mean = Xtrain.mean()
+    std = Xtrain.std()
+    Xtrain = (Xtrain - mean) / std
+    Xtest = (Xtest - mean) / std
+    
     plt.ion()
     batch_sz = 100
-    epocs = 75
+    epochs = 75
 
     network = pvml.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1])
     A = network.forward(np.empty((1, 28, 28, 1)))
@@ -68,7 +74,7 @@ def main():
                   sum(b.size for b in network.biases))
     print(parameters, "parameters")
     errors = [[], []]
-    for epoc in range(1, epocs + 1):
+    for epoch in range(1, epochs + 1):
         steps = Xtrain.shape[0] // batch_sz
         network.train(Xtrain, Ytrain, lr=1e-3, lambda_=1e-5,
                       steps=steps, batch=batch_sz)
@@ -78,8 +84,8 @@ def main():
         test_error = (predictions != Ytest).mean()
         errors[0].append(100 * training_error)
         errors[1].append(100 * test_error)
-        msg = "Epoc {}, Training err. {:.2f}, Test err. {:.2f}"
-        print(msg.format(epoc, 100 * training_error, 100 * test_error))
+        msg = "Epoch {}, Training err. {:.2f}, Test err. {:.2f}"
+        print(msg.format(epoch, 100 * training_error, 100 * test_error))
         plot_errors(errors)
         show_weights(network.weights)
         show_confusion_matrix(Ytest, predictions)

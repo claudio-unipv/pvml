@@ -119,7 +119,7 @@ class MLP:
         for X, D, W, b, uw, ub in zip(activations, derivatives,
                                       self.weights, self.biases,
                                       self.update_w, self.update_b):
-            grad_W = (X.T @ D) + 0.5 * lambda_ * W
+            grad_W = (X.T @ D) + lambda_ * W
             grad_b = D.sum(0)
             uw *= momentum
             uw -= lr * grad_W
@@ -196,7 +196,7 @@ class MLP:
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        data = np.load(filename)
+        data = np.load(filename, allow_pickle=True)
         neurons = [w.shape[0] for w in data["weights"]]
         neurons.append(data["weights"][-1].shape[1])
         network = cls(neurons)

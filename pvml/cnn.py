@@ -150,7 +150,7 @@ class CNN:
             grad_b = D.sum(2).sum(1).sum(0)
             grad_W = _convolution_derivative(X, D, W.shape[0],
                                              W.shape[1], s, s)
-            grad_W += 0.5 * lambda_ * W
+            grad_W += lambda_ * W
             uw *= momentum
             uw -= lr * grad_W
             W += uw
@@ -225,7 +225,7 @@ class CNN:
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        data = np.load(filename)
+        data = np.load(filename, allow_pickle=True)
         neurons = [w.shape[0] for w in data["weights"]]
         neurons.append(data["weights"][-1].shape[1])
         network = cls(neurons)
