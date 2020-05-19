@@ -9,24 +9,42 @@ import numpy as np
 import argparse
 import os
 
+# V1
+# PAD 8 (x94): Acc@1 44.298 Acc@5 68.990
+# PAD 16:      Acc@1 45.953 Acc@5 70.480
+# PAD 64:      Acc@1 46.908 Acc@5 71.162
+
+# V2
+# PAD 16       Acc@1 49.476 Acc@5 74.933
+
+
+# TODO:
+# - normalization in pvmlnet
+# - padding in pvmlnet
+
 
 # Training pvmlnet with pvml would take too much time.  This is why
-# pytorch is used instead.  This way it is possible to access to use a
-# GPU.  At the end the learned weights are copied in the pvml CNN.
+# pytorch is used instead.  This way it is possible to use a GPU.  At
+# the end the learned weights are copied in the pvml CNN.
+#
+# Suggested training schedule:
+# - 30 epocs with learning rate 0.01
+# - 30 epocs with learning rate 0.001
+# - 30 epocs with learning rate 0.0001
 
 
 def make_pvmlnet():
-    layers = []
+    """Mirror pvmlnet as a pytorch model."""
+    layers = [torch.nn.ConstantPad2d(16, 0.0)]
     in_channels = 3
     for channels, size, stride in LAYERS:
-        conv = torch.nn.Conv2d(in_channels, channels, size, stride)
+        conv = torch.nn.Conv2d(in_channels, channels, size, stride, padding=0)
         layers.append(conv)
         layers.append(torch.nn.ReLU())
         in_channels = channels
     layers[-1] = torch.nn.AdaptiveAvgPool2d(1)
+    layers[-6:-6] = [torch.nn.Dropout2d()]
     layers[-4:-4] = [torch.nn.Dropout2d()]
-    layers[-2:-2] = [torch.nn.Dropout2d()]
-    torch.nn.init.constant_(layers[0].bias, -0.5)
     model = torch.nn.Sequential(*layers)
     return model
 
@@ -41,14 +59,15 @@ def parse_args():
       help='number of total epochs to run')
     a('-b', '--batch-size', default=256, type=int, metavar='N',
       help='mini-batch size (default: 256)')
-    a('--lr', '--learning-rate', default=0.1, type=float, metavar='LR',
+    a('--lr', '--learning-rate', default=0.01, type=float, metavar='LR',
       help='initial learning rate', dest='lr')
     a('--momentum', default=0.9, type=float, metavar='M',
       help='momentum')
     a('--wd', '--weight-decay', default=1e-4, type=float, metavar='W',
       help='weight decay (default: 1e-4)', dest='weight_decay')
-    a('-p', '--print-freq', default=10, type=int, metavar='N',
-      help='print frequency (default: 10)')
+    a("--start-from", help="Start from a pretrained model")
+    a('-p', '--print-freq', default=100, type=int, metavar='N',
+      help='print frequency (default: 100)')
     a('--seed', default=None, type=int,
       help='seed for initializing training. ')
     a('--gpu', default=0, type=int, help='GPU id to use.')
@@ -65,7 +84,8 @@ def main():
     tr = torchvision.transforms.Compose([
         torchvision.transforms.RandomResizedCrop(224),
         torchvision.transforms.RandomHorizontalFlip(),
-        torchvision.transforms.ToTensor()
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # !!!
     ])
 
     train_dataset = torchvision.datasets.ImageNet(args.data, split='train',
@@ -77,7 +97,8 @@ def main():
     tr = torchvision.transforms.Compose([
         torchvision.transforms.Resize(256),
         torchvision.transforms.CenterCrop(224),
-        torchvision.transforms.ToTensor()
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # !!!
     ])
 
     val_dataset = torchvision.datasets.ImageNet(args.data, split='val',
@@ -90,7 +111,11 @@ def main():
     # Setup models and optimizer
     #----------------------------------------------------------------------
 
-    model = make_pvmlnet().cuda(args.gpu)
+    if args.start_from is None:
+        model = make_pvmlnet()
+    else:
+        model = torch.load(args.start_from)
+    model = model.cuda(args.gpu)
     criterion = torch.nn.CrossEntropyLoss().cuda(args.gpu)
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -164,10 +189,11 @@ def accuracy(output, target, topk=(1,)):
 if __name__ == "__main__":
     main()
     # net = make_pvmlnet()
-    # x = torch.zeros(4, 3, 224, 224)
+    # print(net)
+    # x = torch.rand(4, 3, 224, 224)
     # y = net(x)
     # print(x.size(), "->", y.size())
-    # net2 = pvml.pvmlnet()
+    # net2 = pvml.make_pvmlnet()
     # x = np.zeros((4, 224, 224, 3))
     # a = net2.forward(x)
     # for aa in a:

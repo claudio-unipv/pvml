@@ -1,39 +1,38 @@
 from .cnn import CNN as _CNN
 
 
+
+
+# Inspired by Alexnet, with differences due to the lack of maxpool and
+# padding.
 _LAYERS = [
-    (96, 7, 4),
-    # (16, 1, 1),
-    (128, 3, 1),
-    (16, 1, 1),
-    (128, 3, 1),
-    (32, 1, 1),
-    (256, 3, 2),
-    (32, 1, 1),
-    (256, 3, 1),
-    (48, 1, 1),
+    (96, 7, 3),
+    (192, 3, 2),
+    (192, 3, 1),
+    (384, 3, 2),
     (384, 3, 1),
-    (48, 1, 1),
-    (384, 3, 1),
-    (64, 1, 1),
     (512, 3, 2),
-    (64, 1, 1),
     (512, 3, 1),
+    (1024, 6, 1),
+    (1024, 1, 1),
     (1000, 1, 1)
 ]
 
 
-def make_pvmlnet(pretrained=False):
-    channels = [3] + [x[0] for x in _LAYERS]
-    kernels = [x[1] for x in _LAYERS]
-    strides = [x[2] for x in _LAYERS]
-    net = _CNN(channels, kernels, strides)
-    return net
+class PVMLNet(_CNN):
+    def __init__(self):
+        channels = [3] + [x[0] for x in _LAYERS]
+        kernels = [x[1] for x in _LAYERS]
+        strides = [x[2] for x in _LAYERS]
+        super().__init__(channels, kernels, strides)
 
+    def preprocessing(self, X):
+        pass
+        
 
 if __name__ == "__main__":
     import numpy as np
-    net = make_pvmlnet(pretrained=False)
+    net = PVMLNet()
     parameters = sum(w.size for w in net.weights)
     parameters += sum(b.size for b in net.biases)
     print("{} parameters".format(parameters))
