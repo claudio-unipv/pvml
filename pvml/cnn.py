@@ -18,7 +18,7 @@ class CNN:
 
     """
 
-    def __init__(self, channels, kernel_sz=None, strides=None):
+    def __init__(self, channels=None, kernel_sz=None, strides=None):
         """Create and initialiaze the CNN.
 
         Parameters
@@ -44,6 +44,7 @@ class CNN:
 
         """
         # Defaults
+        channels = (channels or [1])
         kernel_sz = (kernel_sz or [3] * (len(channels) - 1))
         self.strides = (strides or [1] * (len(channels) - 1))
         # Initialize weights with the Kaiming technique
@@ -226,9 +227,7 @@ class CNN:
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
         data = np.load(filename, allow_pickle=True)
-        neurons = [w.shape[0] for w in data["weights"]]
-        neurons.append(data["weights"][-1].shape[1])
-        network = cls(neurons)
+        network = cls()
         network.weights = data["weights"]
         network.biases = data["biases"]
         network.strides = data["strides"]
