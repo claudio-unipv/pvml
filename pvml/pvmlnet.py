@@ -211,6 +211,9 @@ class PVMLNet(_CNN):
         kernels = [x[1] for x in _LAYERS]
         strides = [x[2] for x in _LAYERS]
         super().__init__(channels, kernels, strides)
+        # Convert to 32 bits to save memory
+        self.weights =  [w.astype(np.float32) for w in self.weights]
+        self.biases =  [b.astype(np.float32) for b in self.biases]
 
     def preprocessing(self, X):
         X = (X - _MEAN) / _STDDEV

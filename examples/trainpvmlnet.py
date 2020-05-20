@@ -9,19 +9,6 @@ import numpy as np
 import argparse
 import os
 
-# V1
-# PAD 8 (x94): Acc@1 44.298 Acc@5 68.990
-# PAD 16:      Acc@1 45.953 Acc@5 70.480
-# PAD 64:      Acc@1 46.908 Acc@5 71.162
-
-# V2
-# PAD 16       Acc@1 49.476 Acc@5 74.933
-
-
-# TODO:
-# - normalization in pvmlnet
-# - padding in pvmlnet
-
 
 # Training pvmlnet with pvml would take too much time.  This is why
 # pytorch is used instead.  This way it is possible to use a GPU.  At
@@ -31,6 +18,11 @@ import os
 # - 30 epocs with learning rate 0.01
 # - 30 epocs with learning rate 0.001
 # - 30 epocs with learning rate 0.0001
+#
+# Accuracy for ilsvrc2012:
+# - top1: 56.471
+# - top5: 80.289
+#
 
 
 def make_pvmlnet():
@@ -74,6 +66,27 @@ def parse_args():
     return parser.parse_args()
 
 
+def export(ptfile, npfile):
+    # net = make_pvmlnet()
+    net = torch.load(ptfile, map_location=torch.device('cpu'))
+    net2 = pvml.PVMLNet()
+    print(net)
+    nw = 0
+    nb = 0
+    for k, v in net.named_parameters():
+        if "weight" in k:
+            vv = np.transpose(v.detach().numpy(), (2, 3, 1, 0))
+            net2.weights[nw][...] = vv
+            nw += 1
+        elif "bias" in k:
+            vv = v.detach().numpy()
+            net2.biases[nb][...] = vv
+            nb += 1
+    if nw != len(net2.weights) or nb != len(net2.biases):
+        raise RuntimeError("Wrong number of parameters")
+    net2.save(npfile)
+    
+
 def main():
     args = parse_args()
 
@@ -85,7 +98,8 @@ def main():
         torchvision.transforms.RandomResizedCrop(224),
         torchvision.transforms.RandomHorizontalFlip(),
         torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # !!!
+        torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                         std=[0.229, 0.224, 0.225]),
     ])
 
     train_dataset = torchvision.datasets.ImageNet(args.data, split='train',
@@ -130,9 +144,11 @@ def main():
         train(train_loader, model, criterion, optimizer, epoch, args)
         acc1 = validate(val_loader, model, criterion, args)
         torch.save(model, "pvmlnet_last.pt")
+        export("pvmlnet_last.pt", "pvmlnet_last.npz")
         if acc1 > best_acc1:
             best_acc1 = acc1
             torch.save(model, "pvmlnet_best.pt")
+            export("pvmlnet_best.pt", "pvmlnet_best.npz")
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
@@ -184,10 +200,11 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
-
+    
 
 if __name__ == "__main__":
     main()
+    # # export("pvmlnet_90.pt", "pvmlnet.npz")
     # net = make_pvmlnet()
     # print(net)
     # x = torch.rand(4, 3, 224, 224)
