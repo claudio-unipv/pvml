@@ -112,6 +112,43 @@ def cooccurrence_matrix(img, bins=8):
     return mat
 
 
+def rgb_cooccurrence_matrix(img, quantization=3):
+    """Gray level co-occurrence matrix.
+
+    The matrix represents the distribution of colors of adjacent
+    pixels.  The matrix is normalized to sum to one.
+
+    Parameters
+    ----------
+    img : ndarray, shape (m, n, 3)
+         input image.
+    bins : int
+         number of gray levels.
+
+    Returns
+    -------
+    ndarray, shape (quantization ** 3, quantization ** 3)
+        co-occurrence matrix.
+
+    """
+    if img.ndim == 2:
+        img = np.stack([img, img, img], -1)  # Gray to RGB
+    if img.max() > 1:
+        img = img / 255.0
+    img = (img * (quantization - 1)).astype(int)
+    # Transform colors in indices
+    bins = quantization ** 3
+    img = (img * np.array([[[1, quantization, quantization ** 2]]])).sum(2)
+    # one pixel below
+    mat = _cooccurrence_matrix_dir(img, bins, 1, 0)
+    # one pixel to the right
+    mat += _cooccurrence_matrix_dir(img, bins, 0, 1)
+    # the transpose counts pixels above and to the left
+    mat += mat.T
+    mat = mat / mat.sum()
+    return mat
+
+
 if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
@@ -124,5 +161,8 @@ if __name__ == "__main__":
         np.savetxt(sys.stdout, e.reshape(1, -1), fmt="%.4g")
         print()
         m = cooccurrence_matrix(img)
+        np.savetxt(sys.stdout, m.reshape(1, -1), fmt="%.4g")
+        print()
+        m = rgb_cooccurrence_matrix(img)
         np.savetxt(sys.stdout, m.reshape(1, -1), fmt="%.4g")
         print()
