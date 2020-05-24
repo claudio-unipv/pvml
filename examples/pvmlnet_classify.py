@@ -3,7 +3,12 @@
 import pvml
 import numpy as np
 import sys
-import PIL.Image
+try:
+    import PIL.Image
+except ImportError:
+    print("To use this script you the the `Pillow' libray")
+    print("
+    sys.exit()
 
 # Check the command line
 if len(sys.argv) < 2:
