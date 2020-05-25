@@ -178,7 +178,8 @@ class DemoModel:
         for i in range(klasses):
             for j in range(klasses):
                 val = cmat[i, j]
-                text = im.axes.text(j, i, "%.1f" % val, color=colors[val > 50],
+                color = (colors[0] if val < 50 else colors[1])
+                text = im.axes.text(j, i, "%.1f" % val, color=color,
                                     horizontalalignment="center",
                                     verticalalignment="center")
 
