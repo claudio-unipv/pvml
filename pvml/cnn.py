@@ -120,7 +120,7 @@ class CNN:
 
     def loss(self, Y, P):
         """Compute the average cross-entropy."""
-        return -np.log(P[np.arange(Y.shape[0]), Y]).mean()
+        return -np.nan_to_num(np.log(P[np.arange(Y.shape[0]), Y])).mean()
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         """Backpropagation algorithm.

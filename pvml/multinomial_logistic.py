@@ -118,4 +118,4 @@ def cross_entropy(H, P):
     float
         average cross entropy.
     """
-    return -(H * np.log(P)).sum(1).mean()
+    return -(H * np.nan_to_num(np.log(P))).sum(1).mean()
