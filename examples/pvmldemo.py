@@ -38,6 +38,8 @@ def parse_args():
       help="Class column")
     a("--seed", type=int, default=171956,
       help="Random seed")
+    a("--confusion-matrix", "-C", action="store_true",
+      help="Show the confusion matrix.")
     a("--dump", action="store_true",
       help="Save the decision boundary and other data")
     a("--nodraw", action="store_true",
@@ -72,6 +74,7 @@ class DemoModel:
         self.iterative = iterative
         self.plot_every = args.plot_every
         self.draw = not args.nodraw
+        self.confusion_matrix = args.confusion_matrix
         self.dump = args.dump
 
     def train(self, X, Y, Xtest, Ytest, steps):
@@ -95,13 +98,15 @@ class DemoModel:
             self.plot_curves(0, "Accuracy (%)", iterations, train_acc,
                              test_acc)
             self.plot_curves(1, "Loss", iterations, train_loss, test_loss)
+            self.plot_confusion(4, "Confusion matrix (train)", Z, Y)
             if X.shape[1] == 2:
                 self.plot_data(2, "Training set", X, Y)
                 if Xtest is not None:
                     self.plot_data(3, "Test set", Xtest, Ytest)
             if Xtest is None:
-                print("{} {:.2f}%".format(step, train_acc[-1]))
+                print("{} {:.2f}%".format(step, train_acc[-1]))                
             else:
+                self.plot_confusion(5, "Confusion matrix (test)", Ztest, Ytest)
                 print("{} {:.2f}% {:.2f}%".format(step, train_acc[-1],
                                                   test_acc[-1]))
             plt.pause(0.0001)
@@ -156,6 +161,28 @@ class DemoModel:
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, values, cmap=plt.cm.coolwarm)
 
+    def plot_confusion(self, fignum, title, predictions, labels):
+        if not self.draw or not self.confusion_matrix:
+            return
+        klasses = max(predictions.max(), labels.max()) + 1
+        plt.figure(fignum)
+        plt.clf()
+        plt.title(title)
+        cmat = np.bincount(klasses * labels + predictions, minlength=klasses ** 2)
+        cmat = cmat.reshape(klasses, klasses)
+        cmat = 100 * cmat / np.maximum(1, cmat.sum(1, keepdims=True))
+        im = plt.imshow(cmat, vmin=0, vmax=100, cmap="OrRd")
+        plt.gca().set_xticks(np.arange(klasses))
+        plt.gca().set_yticks(np.arange(klasses))
+        colors = ("black", "white")
+        for i in range(klasses):
+            for j in range(klasses):
+                val = cmat[i, j]
+                text = im.axes.text(j, i, "%.1f" % val, color=colors[val > 50],
+                                    horizontalalignment="center",
+                                    verticalalignment="center")
+
+        
     def train_step(self, X, Y, steps):
         pass
 
