@@ -37,7 +37,7 @@ def pca(X, *Xtest, mincomponents=1, retvar=0.95):
     mu = X.mean(0, keepdims=True)
     sigma = np.cov(X.T)
     # Compute and sort the eigenvalues
-    evals, evecs = np.linalg.eig(sigma)
+    evals, evecs = np.linalg.eigh(sigma)
     order = np.argsort(-evals)
     evals = evals[order]
     # Determine the components to retain

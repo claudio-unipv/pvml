@@ -178,7 +178,7 @@ def whitening(X, *Xtest):
     """
     mu = X.mean(0, keepdims=True)
     sigma = np.cov(X.T)
-    evals, evecs = np.linalg.eig(sigma)
+    evals, evecs = np.linalg.eigh(sigma)
     w = (np.maximum(evals, 1e-15) ** -0.5) * evecs  # 1e-15 avoids div. by zero
     X = (X - mu) @ w
     if not Xtest:
