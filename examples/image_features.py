@@ -69,18 +69,10 @@ def edge_direction_histogram(img, bins=64):
     return hist
 
 
-def _cooccurrence_matrix_dir(gray, bins, di, dj):
-    """Compute the co-occurrence matrix for the (di, dj) displacement."""
-    m, n = gray.shape
-    codes = gray[:m - di, :n - dj] + bins * gray[di:, dj:]
-    entries = np.bincount(codes.ravel(), minlength=bins ** 2)
-    return entries.reshape(bins, bins)
-
-
-def cooccurrence_matrix(img, bins=8):
+def cooccurrence_matrix(img, bins=8, distance=10):
     """Gray level co-occurrence matrix.
 
-    The matrix represents the distribution of values of adjacent
+    The matrix represents the distribution of values of neighbor
     pixels.  Color images are first converted to grayscale.  The
     matrix is normalized to sum to one.
 
@@ -90,6 +82,8 @@ def cooccurrence_matrix(img, bins=8):
          input image.
     bins : int
          number of gray levels.
+    distance : int
+         distance between neighbor pixels.
 
     Returns
     -------
@@ -102,17 +96,17 @@ def cooccurrence_matrix(img, bins=8):
     if img.max() > 1:
         img = img / 255.0
     img = (img * (bins - 1)).astype(int)
-    # one pixel below
-    mat = _cooccurrence_matrix_dir(img, bins, 1, 0)
-    # one pixel to the right
-    mat += _cooccurrence_matrix_dir(img, bins, 0, 1)
+    # distance pixels below
+    mat = _cooccurrence_matrix_dir(img, bins, distance, 0)
+    # distance pixels to the right
+    mat += _cooccurrence_matrix_dir(img, bins, 0, distance)
     # the transpose counts pixels above and to the left
     mat += mat.T
     mat = mat / mat.sum()
     return mat
 
 
-def rgb_cooccurrence_matrix(img, quantization=3):
+def rgb_cooccurrence_matrix(img, quantization=3, distance=10):
     """Gray level co-occurrence matrix.
 
     The matrix represents the distribution of colors of adjacent
@@ -124,6 +118,8 @@ def rgb_cooccurrence_matrix(img, quantization=3):
          input image.
     bins : int
          number of gray levels.
+    distance : int
+         distance between neighbor pixels.
 
     Returns
     -------
@@ -139,14 +135,27 @@ def rgb_cooccurrence_matrix(img, quantization=3):
     # Transform colors in indices
     bins = quantization ** 3
     img = (img * np.array([[[1, quantization, quantization ** 2]]])).sum(2)
-    # one pixel below
-    mat = _cooccurrence_matrix_dir(img, bins, 1, 0)
-    # one pixel to the right
-    mat += _cooccurrence_matrix_dir(img, bins, 0, 1)
+    # distance pixels below
+    mat = _cooccurrence_matrix_dir(img, bins, distance, 0)
+    # distance pixels to the right
+    mat += _cooccurrence_matrix_dir(img, bins, 0, distance)
     # the transpose counts pixels above and to the left
     mat += mat.T
     mat = mat / mat.sum()
     return mat
+
+
+def _cooccurrence_matrix_dir(values, bins, di, dj):
+    """Helper for the computation of the co-occurrence matrix.
+
+    (di, dj) is the spatial displacement of neighbor pixels.  The
+    elements of values must be integers in the range [0, 1, ..., bins)
+
+    """
+    m, n = values.shape
+    codes = values[:m - di, :n - dj] + bins * values[di:, dj:]
+    entries = np.bincount(codes.ravel(), minlength=bins ** 2)
+    return entries.reshape(bins, bins)
 
 
 if __name__ == "__main__":
