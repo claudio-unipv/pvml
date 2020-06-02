@@ -57,6 +57,8 @@ def categorical_naive_bayes_inference(X, probs, priors):
     -------
     ndarray, shape (m,)
         predicted labels (one per feature vector).
+    ndarray, shape (m, k)
+        prediction scores.
     """
     q = probs.shape[2]
     X = np.clip(X.astype(int), 0, q - 1)
@@ -123,6 +125,8 @@ def multinomial_naive_bayes_inference(X, W, b):
     -------
     ndarray, shape (m,)
         predicted labels (one per feature vector).
+    ndarray, shape (m, k)
+        prediction scores.
     """
     scores = X @ W + b.T
     labels = np.argmax(scores, 1)
@@ -182,6 +186,8 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     -------
     ndarray, shape (m,)
         predicted labels (one per feature vector).
+    ndarray, shape (m, k)
+        prediction scores.
     """
     diffs = (X[:, None, :] - means[None, :, :]) ** 2
     diffs /= vars[None, :, :]
