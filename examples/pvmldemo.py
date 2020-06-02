@@ -104,7 +104,7 @@ class DemoModel:
                 if Xtest is not None:
                     self.plot_data(3, "Test set", Xtest, Ytest)
             if Xtest is None:
-                print("{} {:.2f}%".format(step, train_acc[-1]))                
+                print("{} {:.2f}%".format(step, train_acc[-1]))
             else:
                 self.plot_confusion(5, "Confusion matrix (test)", Ztest, Ytest)
                 print("{} {:.2f}% {:.2f}%".format(step, train_acc[-1],
@@ -168,7 +168,8 @@ class DemoModel:
         plt.figure(fignum)
         plt.clf()
         plt.title(title)
-        cmat = np.bincount(klasses * labels + predictions, minlength=klasses ** 2)
+        cmat = np.bincount(klasses * labels + predictions,
+                           minlength=klasses ** 2)
         cmat = cmat.reshape(klasses, klasses)
         cmat = 100 * cmat / np.maximum(1, cmat.sum(1, keepdims=True))
         im = plt.imshow(cmat, vmin=0, vmax=100, cmap="OrRd")
@@ -179,11 +180,10 @@ class DemoModel:
             for j in range(klasses):
                 val = cmat[i, j]
                 color = (colors[0] if val < 50 else colors[1])
-                text = im.axes.text(j, i, "%.1f" % val, color=color,
-                                    horizontalalignment="center",
-                                    verticalalignment="center")
+                im.axes.text(j, i, "%.1f" % val, color=color,
+                             horizontalalignment="center",
+                             verticalalignment="center")
 
-        
     def train_step(self, X, Y, steps):
         pass
 
@@ -538,6 +538,39 @@ class KNN(DemoModel):
     def inference(self, X):
         ret = pvml.knn_inference(X, self.X, self.Y, self.k)
         return ret
+
+
+@_register_model("kmeans")
+class KMeans(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.k = 2
+        self.centroids = None
+
+    def train_step(self, X, Y, steps):
+        new_k = Y.max() + 1
+        if new_k > self.k:
+            # If the classes change centroids are reset
+            self.centroids = None
+            self.k = new_k
+        self.centroids = pvml.kmeans_train(X, self.k, steps=steps,
+                                           init_centroids=self.centroids)
+        self._sort_centroids(X, Y)
+
+    def inference(self, X):
+        ret = pvml.kmeans_inference(X, self.centroids)
+        return ret
+
+    def _sort_centroids(self, X, Y):
+        # K-means labels do not correspond to training labels.  A
+        # categorical classifier is used to reorder the centroids to
+        # minimize the error.
+        P, _ = pvml.kmeans_inference(X, self.centroids)
+        probs, priors = pvml.categorical_naive_bayes_train(P[:, None], Y)
+        YK = np.arange(self.k)[:, None]
+        Q, _ = pvml.categorical_naive_bayes_inference(YK, probs, priors)
+        ii = np.argsort(Q)
+        self.centroids = self.centroids[ii, :]
 
 
 @_register_model("mlp")
