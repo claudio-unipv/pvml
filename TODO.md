@@ -25,8 +25,6 @@ TODO
 
 BUGS
 ====
-- Extra bin in edge histogram (sometimes 65 bins)
-  + fix: clip before bincount
 - resize update_b and update_w for transfer learning in pvmlnet
   + fix: refactor pvmlnet so that it is not a separate class but just
     an instance of CNN

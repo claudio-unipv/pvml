@@ -62,8 +62,7 @@ def edge_direction_histogram(img, bins=64):
     gy = gy[:, :-2] + 2 * gy[:, 1:-1] + gy[:, 2:]
     magnitude = np.sqrt(gx ** 2 + gy ** 2)
     angle = np.arctan2(gx, -gy)
-    angle[angle < 0] += 2 * np.pi
-    dirs = (bins * angle / (2 * np.pi)).astype(int)
+    dirs = (bins * angle / (2 * np.pi)).astype(int) % bins
     hist = np.bincount(dirs.ravel(), weights=magnitude.ravel(), minlength=bins)
     hist = hist / max(1e-16, hist.sum())
     return hist
