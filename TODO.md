@@ -3,13 +3,11 @@ TODO
 - Classification trees
   + pruning
   + categorical variables?
-- KMeans
-  + Check
-  + Add to demo
 - Other clustering?
 - MLP
-  + refactor the class with activations as attributes
-  + use attributes for activation instead of methods
+  + refactor the class with activations as attributes (?)
+  + use attributes for activation instead of methods (?)
+  + try subclasses (e.g. autoencoder)
 - CNN
   + padding
   + refactor to look more similar to MLP
@@ -30,6 +28,7 @@ BUGS
     an instance of CNN
 - error loading jpegs
   + fix: add pillow to the dependencies
+- review the use of np.nan_to_num
 
 
 DOCS
