@@ -29,9 +29,7 @@ class TestMultinomialLogistic(unittest.TestCase):
 
     def test_softmax(self):
         Z = np.random.randn(20, 4)
-        Y = np.argmax(Z, 1)
         P = pvml.softmax(Z)
-        Yhat = P.argmax(1)
         error = np.abs(P.sum(1) - 1).max()
         self.assertAlmostEqual(0, error)
 
@@ -40,8 +38,8 @@ class TestMultinomialLogistic(unittest.TestCase):
         Y = np.arange(20) % k
         H = pvml.one_hot_vectors(Y, k)
         self.assertListEqual([1] * 20, H.sum(1).tolist())
-        self.assertListEqual(np.bincount(Y, minlength=k).tolist() , H.sum(0).tolist())
-        
+        self.assertListEqual(np.bincount(Y, minlength=k).tolist(), H.sum(0).tolist())
+
     def test_cross_entropy(self):
         P = np.array([[1, 0, 0]])
         H = np.array([[1, 0, 0]])
@@ -50,6 +48,6 @@ class TestMultinomialLogistic(unittest.TestCase):
         np.seterr(**olderr)
         self.assertEqual(0, ce)
 
-        
+
 if __name__ == '__main__':
     unittest.main()

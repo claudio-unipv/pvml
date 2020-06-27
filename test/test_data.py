@@ -39,6 +39,20 @@ def non_separable_checkerboard_data_set(n, k):
     return X, Y
 
 
+def categorical_data_set(n, k):
+    Y = np.arange(n) % k
+    X = Y[:, None] % np.array([2, 3, k])
+    return X, Y
+
+
+def bow_data_set(n, k):
+    Y = np.arange(n) % k
+    Z = np.arange(k * 3) // 3
+    P = 0.1 + 0.8 * (Z[None, :, None] == Y[:, None, None])
+    X = (np.random.random((n, k * 3, 5)) < P).sum(2)
+    return X, Y
+
+
 class TestTestData(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -71,6 +85,22 @@ class TestTestData(unittest.TestCase):
                 X, Y = non_separable_checkerboard_data_set(4 * k, k)
                 self.assertEqual(Y.min(), 0)
                 self.assertEqual(Y.max(), k - 1)
+
+    def test_categorical(self):
+        for k in range(1, 6):
+            with self.subTest(k):
+                X, Y = categorical_data_set(4 * k, k)
+                self.assertEqual(Y.min(), 0)
+                self.assertEqual(Y.max(), k - 1)
+                self.assertEqual(np.abs(np.modf(X)[0]).max(), 0)
+
+    def test_bow(self):
+        for k in range(1, 6):
+            with self.subTest(k):
+                X, Y = bow_data_set(4 * k, k)
+                self.assertEqual(Y.min(), 0)
+                self.assertEqual(Y.max(), k - 1)
+                self.assertEqual(np.abs(np.modf(X)[0]).max(), 0)
 
 
 if __name__ == '__main__':

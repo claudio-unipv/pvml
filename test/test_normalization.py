@@ -107,7 +107,7 @@ class TestNormalization(unittest.TestCase):
         self.assertEqual(T1.std(0)[0], 0)
         self.assertEqual(T1.std(0)[1], 0)
         self.assertEqual(T1.std(0)[2], 0)
-        
+
 
 if __name__ == '__main__':
     unittest.main()

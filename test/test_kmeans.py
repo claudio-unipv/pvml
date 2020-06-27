@@ -60,7 +60,7 @@ class TestKMeans(unittest.TestCase):
         init_centroids = np.arange(k * 2).reshape(k, 2)
         centroids = pvml.kmeans_train(X, k, init_centroids=init_centroids, steps=0)
         self.assertListEqual(init_centroids.tolist(), centroids.tolist())
-        
+
     def test_errors1(self):
         X = np.random.randn(10, 2)
         with self.assertRaises(ValueError):

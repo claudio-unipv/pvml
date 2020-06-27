@@ -42,8 +42,8 @@ class TestKSVM(unittest.TestCase):
     def test_unknown_kernel(self):
         X = np.linspace(-1, 1, 10).reshape(5, 2)
         with self.assertRaises(ValueError):
-            K = pvml.kernel(X, X, "unknown", 2)
+            pvml.kernel(X, X, "unknown", 2)
 
-        
+
 if __name__ == '__main__':
     unittest.main()

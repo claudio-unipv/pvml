@@ -26,7 +26,7 @@ class TestGDA(unittest.TestCase):
         Yhat, scores = pvml.hgda_inference(X, means, icovs, priors)
         np.seterr(**olderr)
         self.assertListEqual([0] * 24, Yhat.tolist())
-                
+
     def test_omoscedastic_gda(self):
         for k in range(1, 5):
             with self.subTest(k):
@@ -43,7 +43,7 @@ class TestGDA(unittest.TestCase):
         np.seterr(**olderr)
         Yhat, scores = pvml.ogda_inference(X, w, b)
         self.assertListEqual([0] * 24, Yhat.tolist())
-                
+
     def test_mindist(self):
         for k in range(1, 5):
             with self.subTest(k):
