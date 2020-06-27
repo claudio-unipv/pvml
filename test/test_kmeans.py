@@ -53,6 +53,34 @@ class TestKMeans(unittest.TestCase):
         Z, _ = pvml.kmeans_inference(X, centroids)
         self.assertListEqual(np.unique(Z).tolist(), list(range(k)))
 
+    def test_init(self):
+        m = 100
+        k = 5
+        X = np.random.randn(m, 2)
+        init_centroids = np.arange(k * 2).reshape(k, 2)
+        centroids = pvml.kmeans_train(X, k, init_centroids=init_centroids, steps=0)
+        self.assertListEqual(init_centroids.tolist(), centroids.tolist())
+        
+    def test_errors1(self):
+        X = np.random.randn(10, 2)
+        with self.assertRaises(ValueError):
+            pvml.kmeans_train(X, 0)
+
+    def test_errors2(self):
+        X = np.random.randn(10, 2)
+        with self.assertRaises(ValueError):
+            pvml.kmeans_train(X, 3, init_centroids=np.zeros((2, 2)))
+
+    def test_errors3(self):
+        X = np.random.randn(10, 2)
+        with self.assertRaises(ValueError):
+            pvml.kmeans_train(X, 3, init_centroids=np.zeros((3, 1)))
+
+    def test_errors4(self):
+        X = np.random.randn(10, 2)
+        with self.assertRaises(ValueError):
+            pvml.kmeans_train(X, 11)
+
 
 if __name__ == '__main__':
     unittest.main()
