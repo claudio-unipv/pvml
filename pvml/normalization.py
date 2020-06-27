@@ -58,7 +58,7 @@ def minmax_normalization(X, *Xtest):
     xmin = X.min(0, keepdims=True)
     xmax = X.max(0, keepdims=True)
     X = X - xmin
-    X /= np.maximum(xmax - xmin, 1e-15)  # 1e-15 avoids division by zero
+    X = X / np.maximum(xmax - xmin, 1e-15)  # 1e-15 avoids division by zero
     if not Xtest:
         return X
     Xtest = tuple((Xt - xmin) / np.maximum(xmax - xmin, 1e-15) for Xt in Xtest)
