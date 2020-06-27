@@ -1,10 +1,6 @@
 import numpy as np
 
 
-# TODO:
-# - docstrings
-
-
 def knn_inference(X, Xtrain, Ytrain, k=1):
     """K-Nearest Neighbors prediction of class labels.
 
