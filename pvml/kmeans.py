@@ -70,7 +70,7 @@ def kmeans_inference(X, centroids):
 
 
 def _respawn_empty(Y, counts):
-    # import pdb; pdb.set_trace()
+    # Divide the samples in the largest cluster to replace the first empty one.
     big = np.argmax(counts)
     empty = (counts == 0).nonzero()[0][0]
     Ynew = np.random.choice(np.array([empty, big]), (counts[big],))
