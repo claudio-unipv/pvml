@@ -37,9 +37,8 @@ def binary_cross_entropy(Y, P):
     float
         average cross entropy.
     """
-    eps = 1e-3
-    P = np.clip(P, eps, 1 - eps)  # This prevents overflows
-    return -(Y * np.log(P) + (1 - Y) * np.log(1 - P)).mean()
+    e = -(Y * np.log(P) + (1 - Y) * np.log(1 - P))
+    return np.nan_to_num(e, 0).mean()
 
 
 def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):
