@@ -14,3 +14,4 @@ from .cnn import *
 from .normalization import *
 from .pca import *
 from .pvmlnet import *
+from .utils import *
