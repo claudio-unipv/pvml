@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import log_nowarn
 
 
 def hgda_train(X, Y, priors=None):
@@ -65,7 +66,7 @@ def hgda_inference(X, means, invcovs, priors):
         det = np.linalg.det(invcovs[c, :, :])
         diff = X - means[None, c, :]
         q = ((diff @ invcovs[c, :, :]) * diff).sum(1)
-        scores[:, c] = 0.5 * q - 0.5 * np.log(det) - np.log(priors[c])
+        scores[:, c] = 0.5 * q - 0.5 * np.log(det) - log_nowarn(priors[c])
     labels = np.argmin(scores, 1)
     return labels, -scores
 
@@ -103,7 +104,7 @@ def ogda_train(X, Y, priors=None):
     icov = np.linalg.inv(cov)
     W = -(icov @ means.T)
     q = ((means @ icov) * means).sum(1)
-    b = 0.5 * q - np.log(priors)
+    b = 0.5 * q - log_nowarn(priors)
     return (W, b)
 
 

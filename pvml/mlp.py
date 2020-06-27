@@ -1,5 +1,5 @@
 import numpy as np
-from .multinomial_logistic import softmax
+from .multinomial_logistic import softmax, cross_entropy
 
 
 class MLP:
@@ -244,7 +244,7 @@ class MLP:
 
     def loss(self, Y, P):
         """Compute the average cross-entropy."""
-        return -np.nan_to_num(np.log(P[np.arange(Y.shape[0]), Y])).mean()
+        return cross_entropy(Y, P)
 
 
 def relu(x):

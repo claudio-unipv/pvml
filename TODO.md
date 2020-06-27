@@ -4,6 +4,8 @@ TODO
   + pruning
   + categorical variables?
 - Other clustering?
+- SVM
+  + add ovo and ovr
 - MLP
   + refactor the class with activations as attributes (?)
   + use attributes for activation instead of methods (?)
@@ -14,8 +16,10 @@ TODO
   + Improve PVMLNet (mostly with padding)
 - RNN
   + Basic
-  + LSTM (?)
+  + LSTM (peephole?)
   + GRU (?)
+- Reinforcement learning
+  + Better example with CNN or MLP (use Open AI gym?)
 - Input checks + better error messages
 - Unit test
   + everything
@@ -28,7 +32,6 @@ BUGS
     an instance of CNN
 - error loading jpegs
   + fix: add pillow to the dependencies
-- review the use of np.nan_to_num
 
 
 DOCS

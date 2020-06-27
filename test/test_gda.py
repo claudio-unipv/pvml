@@ -22,9 +22,7 @@ class TestGDA(unittest.TestCase):
         k = 3
         X, Y = test_data.non_separable_checkerboard_data_set(24, k)
         means, icovs, priors = pvml.hgda_train(X, Y, priors=np.array([1, 0, 0]))
-        olderr = np.seterr(all='ignore')
         Yhat, scores = pvml.hgda_inference(X, means, icovs, priors)
-        np.seterr(**olderr)
         self.assertListEqual([0] * 24, Yhat.tolist())
 
     def test_omoscedastic_gda(self):
@@ -38,9 +36,7 @@ class TestGDA(unittest.TestCase):
     def test_omoscedastic_priors(self):
         k = 4
         X, Y = test_data.non_separable_checkerboard_data_set(24, k)
-        olderr = np.seterr(all='ignore')
         w, b = pvml.ogda_train(X, Y, priors=np.array([1, 0, 0, 0]))
-        np.seterr(**olderr)
         Yhat, scores = pvml.ogda_inference(X, w, b)
         self.assertListEqual([0] * 24, Yhat.tolist())
 
