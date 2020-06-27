@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import log_nowarn
 
 
 def categorical_naive_bayes_train(X, Y, priors=None):
@@ -64,7 +65,7 @@ def categorical_naive_bayes_inference(X, probs, priors):
     X = np.clip(X.astype(int), 0, q - 1)
     m, n = X.shape
     k = priors.shape[0]
-    scores = np.log(priors)[None, :].repeat(m, axis=0)
+    scores = log_nowarn(priors)[None, :].repeat(m, axis=0)
     for c in range(k):
         for j in range(n):
             scores[:, c] += np.log(probs[c, j, X[:, j]])
@@ -105,7 +106,7 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     if priors is None:
         priors = np.bincount(Y) / m
     W = np.log(probs).T
-    b = np.log(priors)
+    b = log_nowarn(priors)
     return (W, b)
 
 
@@ -192,6 +193,6 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     diffs = (X[:, None, :] - means[None, :, :]) ** 2
     diffs /= vars[None, :, :]
     scores = -0.5 * diffs.sum(2) - 0.5 * np.log(vars).sum(1)[None, :]
-    scores += np.log(priors)[None, :]
+    scores += log_nowarn(priors)[None, :]
     labels = np.argmax(scores, 1)
     return labels, scores
