@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import log_nowarn
 
 
 def logreg_inference(X, w, b):
@@ -37,8 +38,10 @@ def binary_cross_entropy(Y, P):
     float
         average cross entropy.
     """
-    e = -(Y * np.log(P) + (1 - Y) * np.log(1 - P))
-    return np.nan_to_num(e, 0).mean()
+    log1 = log_nowarn(P)
+    log0 = log_nowarn(1 - P)
+    e = -log1[Y == 1].sum() - log0[Y == 0].sum()
+    return e / Y.size
 
 
 def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):

@@ -303,8 +303,7 @@ class MultinomialLogisticRegressionModel(DemoModel):
         return Z, P
 
     def loss(self, Y, P):
-        H = pvml.one_hot_vectors(Y, P.shape[1])
-        return pvml.cross_entropy(H, P)
+        return pvml.cross_entropy(Y, P)
 
 
 @_register_model("ovr_svm")

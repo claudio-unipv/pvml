@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import log_nowarn
 
 
 def multinomial_logreg_inference(X, W, b):
@@ -103,7 +104,7 @@ def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000,
     return W, b
 
 
-def cross_entropy(H, P):
+def cross_entropy(Y, P):
     """Average cross entropy.
 
     Parameters
@@ -118,4 +119,5 @@ def cross_entropy(H, P):
     float
         average cross entropy.
     """
-    return -(H * np.nan_to_num(np.log(P))).sum(1).mean()
+    logp = log_nowarn(P)
+    return -logp[np.arange(Y.size), Y].mean()

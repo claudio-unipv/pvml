@@ -32,16 +32,12 @@ class TestLogisticRegression(unittest.TestCase):
 
     def test_cross_entropy1(self):
         Y = np.array([0, 0, 1, 1])
-        olderr = np.seterr(all='ignore')
         e = pvml.binary_cross_entropy(Y, Y)
-        np.seterr(**olderr)
         self.assertEqual(e, 0)
 
     def test_cross_entropy2(self):
         Y = np.array([0, 0, 1, 1])
-        olderr = np.seterr(all='ignore')
         e = pvml.binary_cross_entropy(Y, 1 - Y)
-        np.seterr(**olderr)
         self.assertTrue(np.isinf(e))
 
 

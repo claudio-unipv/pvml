@@ -42,10 +42,8 @@ class TestMultinomialLogistic(unittest.TestCase):
 
     def test_cross_entropy(self):
         P = np.array([[1, 0, 0]])
-        H = np.array([[1, 0, 0]])
-        olderr = np.seterr(all='ignore')
-        ce = pvml.cross_entropy(H, P)
-        np.seterr(**olderr)
+        Y = np.array([[0]])
+        ce = pvml.cross_entropy(Y, P)
         self.assertEqual(0, ce)
 
 
