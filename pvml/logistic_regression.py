@@ -1,5 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
+from .checks import _check_binary_linear, _check_binary_classification
 
 
 def logreg_inference(X, w, b):
@@ -19,6 +20,7 @@ def logreg_inference(X, w, b):
     ndarray, shape (m,)
         probability estimates (one per feature vector).
     """
+    _check_binary_linear(X, w, b)
     logits = X @ w + b
     return 1 / (1 + np.exp(-logits))
 
@@ -69,6 +71,7 @@ def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    Y = _check_binary_classification(X, Y)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b
@@ -111,6 +114,7 @@ def logreg_l2_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None,
     b : float
         learned bias.
     """
+    Y = _check_binary_classification(X, Y)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b
@@ -148,6 +152,7 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    Y = _check_binary_classification(X, Y)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b

@@ -1,5 +1,6 @@
 import numpy as np
 from .gda import mindist_inference
+from .checks import _check_means
 
 
 def kmeans_train(X, k, steps=1000, init_centroids=None):
@@ -84,14 +85,12 @@ def _check_centroids(X, k, centroids):
     if k < 1:
         msg = "The number of clusters ({}) must be a strictly positive integer"
         raise ValueError(msg.format(k))
+    if centroids is not None:
+        _check_means(X, centroids)
     if centroids is not None and k != centroids.shape[0]:
         msg = "The number of clusters ({}) "
         msg += "does not match the number of centroids ({})"
         raise ValueError(msg.format(k, centroids.shape[0]))
-    if centroids is not None and X.shape[1] != centroids.shape[1]:
-        msg = "The number of features ({}) "
-        msg += "does not match the dimension of the centroids ({})"
-        raise ValueError(msg.format(X.shape[1], centroids.shape[1]))
     if k > X.shape[0]:
         msg = "The number of samples ({}) "
         msg += "is smaller than the number of clusters ({})"

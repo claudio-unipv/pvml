@@ -1,4 +1,5 @@
 import numpy as np
+from .checks import _check_binary_linear, _check_binary_classification
 
 
 def svm_inference(X, w, b):
@@ -20,6 +21,7 @@ def svm_inference(X, w, b):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
+    _check_binary_linear(X, w, b)
     logits = X @ w + b
     labels = (logits > 0).astype(int)
     return labels, logits
@@ -71,6 +73,7 @@ def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    _check_binary_classification(X, Y)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b

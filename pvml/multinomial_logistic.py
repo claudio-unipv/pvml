@@ -1,5 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
+from .checks import _check_linear, _check_classification
 
 
 def multinomial_logreg_inference(X, W, b):
@@ -19,6 +20,7 @@ def multinomial_logreg_inference(X, W, b):
     P : ndarray, shape (m, k)
          probability estimates.
     """
+    _check_linear(X, W, b)
     logits = X @ W + b.T
     return softmax(logits)
 
@@ -90,6 +92,7 @@ def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k,)
         vector of biases.
     """
+    _check_classification(X, Y)
     m, n = X.shape
     k = Y.max() + 1
     W = (init_w if init_w is not None else np.zeros((n, k)))
@@ -109,8 +112,8 @@ def cross_entropy(Y, P):
 
     Parameters
     ----------
-    H : ndarray, shape (m, k)
-        one hot vectors for the target labels.
+    Y : ndarray, shape (m,)
+        target labels.
     P : ndarray, shape (m, k)
         probability estimates.
 
