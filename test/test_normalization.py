@@ -108,6 +108,17 @@ class TestNormalization(unittest.TestCase):
         self.assertEqual(T1.std(0)[1], 0)
         self.assertEqual(T1.std(0)[2], 0)
 
+    def test_wrong_dimensions1(self):
+        X = np.linspace(0, 1, 10)
+        with self.assertRaises(ValueError):
+            pvml.meanvar_normalization(X)
+
+    def test_wrong_dimensions2(self):
+        X1 = np.linspace(0, 1, 10).reshape(5, 2)
+        X2 = np.linspace(0, 1, 12).reshape(4, 3)
+        with self.assertRaises(ValueError):
+            pvml.meanvar_normalization(X1, X2)
+
 
 if __name__ == '__main__':
     unittest.main()

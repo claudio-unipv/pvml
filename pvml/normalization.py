@@ -23,6 +23,7 @@ def meanvar_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     mu = X.mean(0, keepdims=True)
     sigma = X.std(0, keepdims=True)
     X = X - mu
@@ -55,6 +56,7 @@ def minmax_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     xmin = X.min(0, keepdims=True)
     xmax = X.max(0, keepdims=True)
     X = X - xmin
@@ -87,6 +89,7 @@ def maxabs_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     # 1e-15 avoids division by zero
     amax = np.maximum(np.abs(X).max(0, keepdims=True), 1e-15)
     X = X / amax
@@ -117,6 +120,7 @@ def l2_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     q = np.sqrt((X ** 2).sum(1, keepdims=True))
     X = X / np.maximum(q, 1e-15)  # 1e-15 avoids division by zero
     if not Xtest:
@@ -146,6 +150,7 @@ def l1_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     q = np.abs(X).sum(1, keepdims=True)
     X = X / np.maximum(q, 1e-15)  # 1e-15 avoids division by zero
     if not Xtest:
@@ -176,6 +181,7 @@ def whitening(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     mu = X.mean(0, keepdims=True)
     sigma = np.cov(X.T)
     evals, evecs = np.linalg.eigh(sigma)
@@ -185,3 +191,14 @@ def whitening(X, *Xtest):
         return X
     Xtest = tuple((Xt - mu) @ w for Xt in Xtest)
     return (X,) + Xtest
+
+
+def _check_all_same_size(*X):
+    for x in X:
+        if x.ndim != 2:
+            msg = "Features must form a bidimensional array ({} dimension(s) found)"
+            raise ValueError(msg.format(x.ndim))
+    for x in X[1:]:
+        if x.shape[1] != X[0].shape[1]:
+            msg = "The number of features does not match ({} and {})"
+            raise ValueError(msg.format(X[0].shape[1], x.shape[1]))

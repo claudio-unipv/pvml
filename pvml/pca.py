@@ -1,4 +1,5 @@
 import numpy as np
+from .normalization import _check_all_same_size
 
 
 def pca(X, *Xtest, mincomponents=1, retvar=0.95):
@@ -33,6 +34,7 @@ def pca(X, *Xtest, mincomponents=1, retvar=0.95):
         normalized test features (one for each array in Xtest).
 
     """
+    _check_all_same_size(X, *Xtest)
     # Compute the moments
     mu = X.mean(0, keepdims=True)
     sigma = np.cov(X.T)
