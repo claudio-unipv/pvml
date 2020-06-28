@@ -32,6 +32,20 @@ def _check_binary_classification(X, Y):
     return Y
 
 
+def _check_categorical(X):
+    """Check that X contain categorical data.
+
+    If needed X is converted to int.
+    """
+    if not np.issubdtype(X.dtype, np.integer):
+        if np.abs(np.modf(X)[0]).max() > 0:
+            raise ValueError("Categorical data must be integers")
+        X = X.astype(np.int32)
+    if X.min() < 0:
+        raise ValueError("Categorical data cannot be negative")
+    return X
+
+
 def _check_binary_linear(X, w, b):
     """Check that X @ w + b is valid."""
     if X.ndim != 2:

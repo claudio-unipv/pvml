@@ -1,5 +1,7 @@
 import numpy as np
 from .utils import log_nowarn
+from .checks import _check_classification, _check_categorical
+from .checks import _check_linear, _check_means
 
 
 def categorical_naive_bayes_train(X, Y, priors=None):
@@ -24,7 +26,8 @@ def categorical_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
-    X = np.maximum(X, 0).astype(int)  # Force X to be of non-negative integers
+    Y = _check_classification(X, Y)
+    X = _check_categorical(X)
     m, n = X.shape
     q = X.max() + 1
     k = Y.max() + 1
@@ -61,6 +64,7 @@ def categorical_naive_bayes_inference(X, probs, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
+    X = _check_categorical(X)
     q = probs.shape[2]
     X = np.clip(X.astype(int), 0, q - 1)
     m, n = X.shape
@@ -95,7 +99,8 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     b : ndarray, shape (k,)
          vector of biases.
     """
-    X = np.maximum(X, 0).astype(int)  # Force X to be of non-negative integers
+    Y = _check_classification(X, Y)
+    X = _check_categorical(X)
     m, n = X.shape
     k = Y.max() + 1
     probs = np.empty((k, n))
@@ -129,6 +134,7 @@ def multinomial_naive_bayes_inference(X, W, b):
     ndarray, shape (m, k)
         prediction scores.
     """
+    _check_linear(X, W, b)
     scores = X @ W + b.T
     labels = np.argmax(scores, 1)
     return labels, scores
@@ -156,6 +162,7 @@ def gaussian_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
+    Y = _check_classification(X, Y)
     k = Y.max() + 1
     m, n = X.shape
     means = np.empty((k, n))
@@ -190,6 +197,7 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
+    _check_means(X, means)
     diffs = (X[:, None, :] - means[None, :, :]) ** 2
     diffs /= vars[None, :, :]
     scores = -0.5 * diffs.sum(2) - 0.5 * np.log(vars).sum(1)[None, :]
