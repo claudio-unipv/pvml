@@ -3,7 +3,7 @@ import numpy as np
 
 def _check_classification(X, Y):
     """Check that X, Y form a valid training set for classification.
-    
+
     Also convert Y to int if needed.
     """
     if X.ndim != 2:
@@ -30,7 +30,7 @@ def _check_binary_classification(X, Y):
     if Y.max() > 1:
         raise ValueError("Expected binary labels (got {})".format(Y.max()))
     return Y
-    
+
 
 def _check_binary_linear(X, w, b):
     """Check that X @ w + b is valid."""
@@ -46,7 +46,7 @@ def _check_binary_linear(X, w, b):
         msg = "The number of features ({}) does not match the number of weights ({})"
         raise ValueError(msg.format(X.shape[1], w.shape[0]))
 
-    
+
 def _check_linear(X, W, b):
     """Check that X @ W + b is valid."""
     if X.ndim != 2:
@@ -76,4 +76,3 @@ def _check_means(X, M):
     if X.shape[1] != M.shape[1]:
         msg = "The number of features ({}) does not match the number of weights ({})"
         raise ValueError(msg.format(X.shape[1], M.shape[1]))
-    
