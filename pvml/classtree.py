@@ -12,17 +12,17 @@ from utils import one_hot_vectors
 class ClassificationTree:
     def __init__(self):
         self._reset(1, 1)
-        
+
     def inference(self, X):
         m = X.shape[0]
-        I = np.zeros(m, dtype=int)
+        J = np.zeros(m, dtype=int)
         while True:
-            s = (~self.terminal[I]).nonzero()[0]
+            s = (~self.terminal[J]).nonzero()[0]
             if s.size == 0:
                 break
-            c = (X[s, self.feature[I[s]]] < self.threshold[I[s]])
-            I[s] = self.children[I[s], 1 - c]  # 0 -> left, 1 -> right
-        probs = self.distribution[I, :]
+            c = (X[s, self.feature[J[s]]] < self.threshold[J[s]])
+            J[s] = self.children[J[s], 1 - c]  # 0 -> left, 1 -> right
+        probs = self.distribution[J, :]
         labels = probs.argmax(1)
         return labels, probs
 
@@ -55,7 +55,6 @@ class ClassificationTree:
 
     def _grow(self, X, H, t, dfun, minsize):
         m, k = H.shape
-        freqs = np.bincount(Y, minlength=k)
         self.distribution[t, :] = (H.sum(0) + 1) / (m + k)
         split = _find_split(X, H, dfun, minsize)
         if split is None:
@@ -66,9 +65,9 @@ class ClassificationTree:
         self.children[t, 0] = self.nodes
         self.children[t, 1] = self.nodes + 1
         self.nodes += 2
-        I = (X[:, split[0]] < split[1])
-        self._grow(X[I, :], H[I, :], self.children[t, 0], dfun, minsize)
-        self._grow(X[~I, :], H[~I, :], self.children[t, 1], dfun, minsize)
+        J = (X[:, split[0]] < split[1])
+        self._grow(X[J, :], H[J, :], self.children[t, 0], dfun, minsize)
+        self._grow(X[~J, :], H[~J, :], self.children[t, 1], dfun, minsize)
 
     def _dump(self, indent=0, node=0):
         print("{:3d}{} ".format(node, " " * indent), end="")
@@ -79,7 +78,7 @@ class ClassificationTree:
             t = self.threshold[node]
             print("if x[{}] < {}:".format(f, t))
             self._dump(indent + 4, self.children[node, 0])
-            print("   {} ".format(" " * indent), end="")            
+            print("   {} ".format(" " * indent), end="")
             print("else:")
             self._dump(indent + 4, self.children[node, 1])
 
