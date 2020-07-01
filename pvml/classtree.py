@@ -1,5 +1,7 @@
 import numpy as np
-
+# from .checks import _check_classification
+from checks import _check_classification
+from utils import one_hot_vectors
 
 # TODO:
 # - docstrings & comments
@@ -7,97 +9,122 @@ import numpy as np
 # - categorical variables and splits
 
 
-class Node:
-    def inference(self, X, classes):
-        pass
-
-    def _dump(self, indent):
-        pass
-
-
-class TerminalNode(Node):
-    def __init__(self, distribution):
-        self.distribution = distribution
-
-    def inference(self, X, classes):
-        return np.tile(self.distribution, (X.shape[0], 1))
-
-    def _dump(self, indent):
-        s = np.array_str(self.distribution, precision=4)
-        p = self.distribution.argmax()
-        return (" " * indent) + s + " => " + str(p) + "\n"
-
-
-class InternalNode(Node):
-    def __init__(self, left, right, feature, value):
-        self.left = left
-        self.right = right
-        self.feature = feature
-        self.value = value
-
-    def inference(self, X, classes):
-        out = np.empty((X.shape[0], classes))
-        ii = (X[:, self.feature] < self.value)
-        if ii.any():
-            out[ii, :] = self.left.inference(X[ii, :], classes)
-        if not ii.all():
-            ii = np.logical_not(ii)
-            out[ii, :] = self.right.inference(X[ii, :], classes)
-        return out
-
-    def _dump(self, indent):
-        i = (" " * indent)
-        hd = i + "if x[{}] < {}:\n".format(self.feature, self.value)
-        lb = self.left._dump(indent + 4)
-        el = i + "else:\n"
-        rb = self.right._dump(indent + 4)
-        return "".join([hd, lb, el, rb])
-
-
 class ClassificationTree:
     def __init__(self):
-        self.root = TerminalNode(0)
-        self.classes = 1
-
+        self._reset(1, 1)
+        
     def inference(self, X):
-        probs = self.root.inference(X, self.classes)
+        m = X.shape[0]
+        I = np.zeros(m, dtype=int)
+        while True:
+            s = (~self.terminal[I]).nonzero()[0]
+            if s.size == 0:
+                break
+            c = (X[s, self.feature[I[s]]] < self.threshold[I[s]])
+            I[s] = self.children[I[s], 1 - c]  # 0 -> left, 1 -> right
+        probs = self.distribution[I, :]
         labels = probs.argmax(1)
         return labels, probs
 
-    def train(self, X, Y, diversity="gini", minsize=10, classes=None):
+    def train(self, X, Y, diversity="gini", minsize=10):
+        Y = _check_classification(X, Y)
         dfun = _DIVERSITY_FUN[diversity]
-        if classes is None:
-            self.classes = Y.max() + 1
-        m = X.shape[0]
-        H = np.zeros((m, self.classes), dtype=int)
-        H[np.arange(m), Y] = 1
+        m, n = X.shape
+        k = Y.max() + 1
+        maxleaves = 2 * m // minsize
+        self._reset(2 * maxleaves - 1, k)
+        H = one_hot_vectors(Y, k)
+        self._grow(X, H, 0, dfun, minsize)
+        self._trim()
 
-        def _train_rec(X, H):
-            if X.shape[0] < minsize:
-                dist = (1 + H.sum(0)) / (X.shape[0] + self.classes)
-                return TerminalNode(dist)
-            split = _find_split(X, H, dfun, minsize)
-            if split is None:
-                dist = (1 + H.sum(0)) / (X.shape[0] + self.classes)
-                return TerminalNode(dist)
-            ii = (X[:, split[0]] < split[1])
-            left = _train_rec(X[ii, :], H[ii, :])
-            ii = np.logical_not(ii)
-            right = _train_rec(X[ii, :], H[ii, :])
-            return InternalNode(left, right, split[0], split[1])
-        self.root = _train_rec(X, H)
+    def _reset(self, nodes, classes):
+        self.children = np.zeros((nodes, 2), dtype=int)
+        self.feature = np.zeros(nodes, dtype=int)
+        self.terminal = np.ones(nodes, dtype=np.bool)
+        self.threshold = np.zeros(nodes)
+        self.distribution = np.ones((nodes, classes))
+        self.nodes = 1
+
+    def _trim(self):
+        n = self.nodes
+        self.children = self.children[:n, :]
+        self.feature = self.feature[:n]
+        self.terminal = self.terminal[:n]
+        self.threshold = self.threshold[:n]
+        self.distribution = self.distribution[:n, :]
+
+    def _grow(self, X, H, t, dfun, minsize):
+        m, k = H.shape
+        freqs = np.bincount(Y, minlength=k)
+        self.distribution[t, :] = (H.sum(0) + 1) / (m + k)
+        split = _find_split(X, H, dfun, minsize)
+        if split is None:
+            return
+        self.feature[t] = split[0]
+        self.threshold[t] = split[1]
+        self.terminal[t] = 0
+        self.children[t, 0] = self.nodes
+        self.children[t, 1] = self.nodes + 1
+        self.nodes += 2
+        I = (X[:, split[0]] < split[1])
+        self._grow(X[I, :], H[I, :], self.children[t, 0], dfun, minsize)
+        self._grow(X[~I, :], H[~I, :], self.children[t, 1], dfun, minsize)
+
+    def _dump(self, indent=0, node=0):
+        print("{:3d}{} ".format(node, " " * indent), end="")
+        if self.terminal[node]:
+            print("==> {}".format(self.distribution[node, :].argmax()))
+        else:
+            f = self.feature[node]
+            t = self.threshold[node]
+            print("if x[{}] < {}:".format(f, t))
+            self._dump(indent + 4, self.children[node, 0])
+            print("   {} ".format(" " * indent), end="")            
+            print("else:")
+            self._dump(indent + 4, self.children[node, 1])
 
 
 def _find_split(X, H, criterion, minsize):
+    """Helper function that finds the best split.
+
+    Parameters
+    ----------
+    X : ndarray, shape (m, n)
+         input features (one row per feature vector).
+    H : ndarray, shape (m, k)
+         one hot vectors for class labels.
+    criterion : function
+         function mapping probabilities to the real-values objective.
+    minsize : int
+         minimum size of the subsets in which X is divided by the split.
+
+    Returns
+    -------
+    int
+        feature used to split the data.
+    float
+        split threshold.
+    float
+        value of the criterion function for the split.
+
+    The function returns None if no split is able to improve the
+    criterion on the whole set.
+
+    """
     m, n = X.shape
     if m < 2 * minsize:
         return None
+    p = (1 + H.sum(0, keepdims=True)) / (m + H.shape[1])
+    start_criterion = criterion(p)
     split = None
     for j in range(n):
         ret = _decision_stump(X[:, j], H, criterion, minsize)
         if ret is not None and (split is None or ret[1] < split[2]):
             split = j, ret[0], ret[1]
-    return split
+    if split is not None and split[2] < start_criterion:
+        return split
+    else:
+        return None
 
 
 _DIVERSITY_FUN = {
@@ -108,6 +135,28 @@ _DIVERSITY_FUN = {
 
 
 def _decision_stump(x, h, criterion, minsize):
+    """Helper function that finds the best split on a single feature.
+
+    Parameters
+    ----------
+    x : ndarray, shape (m,)
+         input values.
+    h : ndarray, shape (m, k)
+         one hot vectors for class labels.
+    criterion : function
+         function mapping probabilities to the real-values objective.
+    minsize : int
+         minimum size of the subsets in which X is divided by the split.
+
+    Returns
+    -------
+    float
+        split threshold.
+    float
+        value of the criterion function for the split.
+
+    The function returns None if no split is possible.
+    """
     m, k = h.shape
     # 1) sort the data and find candidate splits
     ii = np.argsort(x)
@@ -133,3 +182,19 @@ def _decision_stump(x, h, criterion, minsize):
     best = sp[j]
     threshold = (x[ii[best + 1]] + x[ii[best]]) / 2
     return (threshold, cost[j])
+
+
+tree = ClassificationTree()
+X, Y = np.meshgrid(np.linspace(-2, 2, 4), np.linspace(-2, 2, 4))
+X = np.stack([X.ravel(), Y.ravel()], 1)
+Y = ((X[:, 0] > 0) + 2 * (X[:, 1] > 0))
+X = np.random.randn(1000, 10)
+Y = np.random.randint(0, 5, (1000,), dtype=int)
+tree.train(X, Y, minsize=1)
+print("OK")
+Yhat, P = tree.inference(X)
+print((Y == Yhat).mean())
+print(tree.distribution)
+tree._dump()
+print(Y)
+print(Yhat)
