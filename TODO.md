@@ -1,8 +1,5 @@
 TODO
 ====
-- Classification trees
-  + pruning
-  + categorical variables?
 - Other clustering?
 - SVM
   + add ovo and ovr

@@ -1,32 +1,87 @@
 import numpy as np
-# from .checks import _check_classification
-from checks import _check_classification
-from utils import one_hot_vectors
+from .checks import _check_classification
+from .utils import one_hot_vectors, log_nowarn
 
-# TODO:
-# - docstrings & comments
-# - CC Pruning
-# - categorical variables and splits
+
+# Implementation
+# ==============
+#
+# It is similar to CART trees, but without the support for regression,
+# categorical variables, and other advanced features.
+#
+# In training a 'full' tree is grown with a high likelihood of
+# overfitting the data.  A diversity criterion is used to split the
+# data until it is divided in omogeneous subsets.
+#
+# Then, cost-complexity pruning is used to prune the tree to the
+# 'right' level of complexity.  CC pruning optimize the following
+# objective:
+#
+#   min R(T, lambda) = error(T) + lambda * size(T)
+#
+# where size(T) is the number of leaves, and error(T) is the training
+# error of the tree T.  For lambda = 0 the initial tree is optimal.
+# As lambda gorws, eventually it will be better to replace a whole
+# subtree with a leaf.  This happen for
+#
+#   lambda = Delta-error(t) / (size(t) - 1)
+#
+# where t is a subtree, Delta-error is the increase in training error
+# that the pruning of t wuold cause, and size(t) is the number of
+# leaves in the subtree.
+#
+# With the formula above candidate values of lambda are selected.
+# K-fold cross-validation is used to pick the one minimizing the
+# generalization error.
 
 
 class ClassificationTree:
+    """Classification trees.
+
+    CART-like model of a classification tree for continuous variables.
+    """
     def __init__(self):
+        """Create a tree with a single node."""
         self._reset(1, 1)
 
     def inference(self, X):
-        m = X.shape[0]
-        J = np.zeros(m, dtype=int)
-        while True:
-            s = (~self.terminal[J]).nonzero()[0]
-            if s.size == 0:
-                break
-            c = (X[s, self.feature[J[s]]] < self.threshold[J[s]])
-            J[s] = self.children[J[s], 1 - c]  # 0 -> left, 1 -> right
+        """Prediction of the class labels.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, n)
+            input features (one row per feature vector).
+
+        Returns
+        -------
+        ndarray, shape (m,)
+            predicted labels (one per feature vector).
+        ndarray, shape (m, k)
+            class probabilities (one per feature vector).
+        """
+        _check_inference(X, self)
+        J = self._descend(X)
         probs = self.distribution[J, :]
         labels = probs.argmax(1)
         return labels, probs
 
-    def train(self, X, Y, diversity="gini", minsize=10):
+    def train(self, X, Y, diversity="gini", minsize=1, pruning_cv=5):
+        """Train a classification tree.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, n)
+            training features.
+        Y : ndarray, shape (m,)
+            training labels.
+        diversity : str
+            diversity criterion ('gini', 'entropy' or 'error').
+        minsize : int
+            minimum number of training samples per node during tree growth.
+        pruning_cv : int
+            number of cross-validation folds used for cost-complexity
+            pruning (0 disable pruning).
+        """
         Y = _check_classification(X, Y)
         dfun = _DIVERSITY_FUN[diversity]
         m, n = X.shape
@@ -36,8 +91,11 @@ class ClassificationTree:
         H = one_hot_vectors(Y, k)
         self._grow(X, H, 0, dfun, minsize)
         self._trim()
+        if pruning_cv != 0:
+            self._prune(X, Y, pruning_cv, diversity, minsize)
 
     def _reset(self, nodes, classes):
+        """Initialize the attributes."""
         self.children = np.zeros((nodes, 2), dtype=int)
         self.feature = np.zeros(nodes, dtype=int)
         self.terminal = np.ones(nodes, dtype=np.bool)
@@ -45,7 +103,19 @@ class ClassificationTree:
         self.distribution = np.ones((nodes, classes))
         self.nodes = 1
 
+    def _descend(self, X):
+        """Return the indexes of the tree nodes in which the samples fall."""
+        J = np.zeros(X.shape[0], dtype=int)
+        while True:
+            s = (~self.terminal[J]).nonzero()[0]
+            if s.size == 0:
+                break
+            c = (X[s, self.feature[J[s]]] < self.threshold[J[s]])
+            J[s] = self.children[J[s], 1 - c]  # 0 -> left, 1 -> right
+        return J
+
     def _trim(self):
+        """Remove unused nodes."""
         n = self.nodes
         self.children = self.children[:n, :]
         self.feature = self.feature[:n]
@@ -54,8 +124,9 @@ class ClassificationTree:
         self.distribution = self.distribution[:n, :]
 
     def _grow(self, X, H, t, dfun, minsize):
+        """Grow the tree by trying to split node t."""
         m, k = H.shape
-        self.distribution[t, :] = (H.sum(0) + 1) / (m + k)
+        self.distribution[t, :] = H.mean(0)
         split = _find_split(X, H, dfun, minsize)
         if split is None:
             return
@@ -69,18 +140,83 @@ class ClassificationTree:
         self._grow(X[J, :], H[J, :], self.children[t, 0], dfun, minsize)
         self._grow(X[~J, :], H[~J, :], self.children[t, 1], dfun, minsize)
 
-    def _dump(self, indent=0, node=0):
-        print("{:3d}{} ".format(node, " " * indent), end="")
+    def _prune(self, X, Y, cv, diversity, minsize):
+        """Cost-complexity pruning."""
+        leaves = self._count_leaves()[~self.terminal]
+        errors = self._pruning_errors(X, Y)[~self.terminal] / Y.size
+        lambdas = (errors / (leaves - 1))
+        lambdas = np.unique(lambdas)
+        folds = np.arange(Y.size) % cv
+        np.random.shuffle(folds)
+        val = self._eval_prune_lambda(X, Y, 0.0, folds, diversity, minsize)
+        best = (val, 0.0)
+        for lambda_ in lambdas:
+            val = self._eval_prune_lambda(X, Y, lambda_, folds, diversity, minsize)
+            best = max(best, (val, lambda_))
+        self._prune_lambda(X, Y, best[1])
+
+    def _eval_prune_lambda(self, X, Y, lambda_, folds, diversity, minsize):
+        """Estimate the accuracy of the tree pruned according to lambda_."""
+        Yhat = np.empty_like(Y)
+        tree = ClassificationTree()
+        for fold in np.unique(folds):
+            J = (folds == fold)
+            tree.train(X[~J], Y[~J], diversity=diversity, minsize=minsize,
+                       pruning_cv=0)
+            tree._prune_lambda(X[~J], Y[~J], lambda_)
+            Yhat[J] = tree.inference(X[J])[0]
+        return (Y == Yhat).mean()
+
+    def _prune_lambda(self, X, Y, lambda_):
+        """Prune the tree at the given cost-complexity level."""
+        leaves = self._count_leaves()
+        errors = self._pruning_errors(X, Y) / Y.size
+        lambdas = (errors / np.maximum(1, (leaves - 1)))
+        self.terminal |= (lambdas <= lambda_)
+
+    def _count_leaves(self):
+        """Return the number of descendent leaves for each node."""
+        leaves = np.ones(self.nodes, dtype=int)
+        ts = (~self.terminal).nonzero()[0]
+        for t in ts[::-1]:
+            leaves[t] = leaves[self.children[t, 0]] + leaves[self.children[t, 1]]
+        return leaves
+
+    def _pruning_errors(self, X, Y):
+        """Return the number of additional errors caused by pruning nodes."""
+        klass = self.distribution.argmax(1)
+        errors = np.zeros(self.nodes, dtype=int)
+        errors[0] = (klass[0] != Y).sum()
+        J = np.zeros(X.shape[0], dtype=int)
+        while True:
+            s = (~self.terminal[J]).nonzero()[0]
+            if s.size == 0:
+                break
+            c = (X[s, self.feature[J[s]]] < self.threshold[J[s]])
+            J[s] = self.children[J[s], 1 - c]  # 0 -> left, 1 -> right
+            w = (Y[s] != klass[J[s]])
+            e = np.bincount(J[s], weights=w, minlength=self.nodes)
+            errors += e.astype(int)
+        errors2 = errors.copy()
+        ts = (~self.terminal).nonzero()[0]
+        for t in ts[::-1]:
+            errors2[t] = errors2[self.children[t, 0]] + errors2[self.children[t, 1]]
+        return errors - errors2
+
+    def _dumps(self, indent=0, node=0):
+        """Sting representation of the tree."""
+        pre = "{:3d}{} ".format(node, " " * indent)
         if self.terminal[node]:
-            print("==> {}".format(self.distribution[node, :].argmax()))
+            klass = self.distribution[node, :].argmax()
+            s = pre + "==> {}\n".format(klass)
         else:
             f = self.feature[node]
             t = self.threshold[node]
-            print("if x[{}] < {}:".format(f, t))
-            self._dump(indent + 4, self.children[node, 0])
-            print("   {} ".format(" " * indent), end="")
-            print("else:")
-            self._dump(indent + 4, self.children[node, 1])
+            s = "".join([pre + "if x[{}] < {}:\n".format(f, t),
+                         self._dumps(indent + 4, self.children[node, 0]),
+                         "   {} else:\n".format(" " * indent),
+                         self._dumps(indent + 4, self.children[node, 1])])
+        return s
 
 
 def _find_split(X, H, criterion, minsize):
@@ -113,7 +249,7 @@ def _find_split(X, H, criterion, minsize):
     m, n = X.shape
     if m < 2 * minsize:
         return None
-    p = (1 + H.sum(0, keepdims=True)) / (m + H.shape[1])
+    p = H.mean(0, keepdims=True)
     start_criterion = criterion(p)
     split = None
     for j in range(n):
@@ -126,9 +262,16 @@ def _find_split(X, H, criterion, minsize):
         return None
 
 
+def _entropy(p):
+    """Compute entropy, suppressing warnings and preventing errors."""
+    logp = log_nowarn(p)
+    logp[p == 0] = 0
+    return -(p * logp).sum(1)
+
+
 _DIVERSITY_FUN = {
     "gini": lambda p: (1 - (p ** 2).sum(1)),
-    "entropy": lambda p: (-(p * np.nan_to_num(np.log(p))).sum(1)),
+    "entropy": _entropy,
     "error": lambda p:  (1 - p.max(1))
 }
 
@@ -168,10 +311,10 @@ def _decision_stump(x, h, criterion, minsize):
     # 2) compute the class distributions at the split points
     counts_lo = h[ii, :].cumsum(0)
     counts_hi = counts_lo[-1:, :] - counts_lo
-    p_lo = ((1 + counts_lo[sp, :]) /
-            (k + counts_lo[sp, :].sum(1, keepdims=True)))
-    p_hi = ((1 + counts_hi[sp, :]) /
-            (k + counts_hi[sp, :].sum(1, keepdims=True)))
+    p_lo = ((counts_lo[sp, :]) /
+            (counts_lo[sp, :].sum(1, keepdims=True)))
+    p_hi = ((counts_hi[sp, :]) /
+            (counts_hi[sp, :].sum(1, keepdims=True)))
     p_split = sp / m
     # 3) compute the average criterion and select the lowest
     cost = p_split * criterion(p_lo) + (1 - p_split) * criterion(p_hi)
@@ -183,17 +326,10 @@ def _decision_stump(x, h, criterion, minsize):
     return (threshold, cost[j])
 
 
-tree = ClassificationTree()
-X, Y = np.meshgrid(np.linspace(-2, 2, 4), np.linspace(-2, 2, 4))
-X = np.stack([X.ravel(), Y.ravel()], 1)
-Y = ((X[:, 0] > 0) + 2 * (X[:, 1] > 0))
-X = np.random.randn(1000, 10)
-Y = np.random.randint(0, 5, (1000,), dtype=int)
-tree.train(X, Y, minsize=1)
-print("OK")
-Yhat, P = tree.inference(X)
-print((Y == Yhat).mean())
-print(tree.distribution)
-tree._dump()
-print(Y)
-print(Yhat)
+def _check_inference(X, tree):
+    if X.ndim != 2:
+        msg = "Features must form a bidimensional array ({} dimension(s) found)"
+        raise ValueError(msg.format(X.ndim))
+    if X.shape[1] < tree.feature.max() + 1:
+        msg = "Expected feature vectors with at least {} components (got {})."
+        raise ValueError(msg.format(tree.feature.max() + 1, X.shape[1]))

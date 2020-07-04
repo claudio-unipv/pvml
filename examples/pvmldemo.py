@@ -51,11 +51,13 @@ def parse_args():
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
     a("--knn-k", type=int, default=0, help="KNN neighbors (default auto)")
-    a("--classtree-minsize", type=int, default=10,
+    a("--classtree-minsize", type=int, default=1,
       help="Classification tree minimum node size (%(default)d)")
     a("--classtree-diversity", default="gini",
       choices=["gini", "entropy", "error"],
       help="Classification tree diversity function (%(default)s)")
+    a("--classtree-cv", type=int, default=5,
+      help="Cross-validation folds used for pruning (%(default)d)")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -491,10 +493,12 @@ class ClassificationTree(DemoModel):
         super().__init__(args, False, False)
         self.tree = pvml.ClassificationTree()
         self.minsize = args.classtree_minsize
+        self.cv = args.classtree_cv
         self.diversity = args.classtree_diversity
 
     def train_step(self, X, Y, steps):
-        self.tree.train(X, Y, minsize=self.minsize, diversity=self.diversity)
+        self.tree.train(X, Y, minsize=self.minsize,
+                        diversity=self.diversity, pruning_cv=self.cv)
 
     def inference(self, X):
         ret = self.tree.inference(X)
