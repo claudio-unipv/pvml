@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
-from .checks import _check_linear, _check_classification
+from .checks import _check_size, _check_labels
 
 
 def multinomial_logreg_inference(X, W, b):
@@ -20,7 +20,7 @@ def multinomial_logreg_inference(X, W, b):
     P : ndarray, shape (m, k)
          probability estimates.
     """
-    _check_linear(X, W, b)
+    _check_size("mn, nk, k", X, W, b)
     logits = X @ W + b.T
     return softmax(logits)
 
@@ -38,6 +38,7 @@ def softmax(Z):
     ndarray, shape (m, n)
          data after the softmax has been applied to each row.
     """
+    _check_size("mn", Z)
     # Subtracting the maximum improves numerical stability
     E = np.exp(Z - Z.max(1, keepdims=True))
     return E / E.sum(1, keepdims=True)
@@ -58,6 +59,8 @@ def one_hot_vectors(Y, classes):
     ndarray, shape (m, classes)
          One-hot vectors representing the labels Y.
     """
+    _check_size("m", Y)
+    Y = _check_labels(Y, classes)
     m = Y.shape[0]
     H = np.zeros((m, classes))
     H[np.arange(m), Y] = 1
@@ -92,7 +95,8 @@ def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k,)
         vector of biases.
     """
-    _check_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y)
     m, n = X.shape
     k = Y.max() + 1
     W = (init_w if init_w is not None else np.zeros((n, k)))
@@ -122,5 +126,7 @@ def cross_entropy(Y, P):
     float
         average cross entropy.
     """
+    _check_size("m, mk", Y, P)
+    Y = _check_labels(Y, P.shape[1])
     logp = log_nowarn(P)
     return -logp[np.arange(Y.size), Y].mean()

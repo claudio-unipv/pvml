@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
-from .checks import _check_binary_linear, _check_binary_classification
+from .checks import _check_size, _check_labels
 
 
 def logreg_inference(X, w, b):
@@ -20,7 +20,7 @@ def logreg_inference(X, w, b):
     ndarray, shape (m,)
         probability estimates (one per feature vector).
     """
-    _check_binary_linear(X, w, b)
+    _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     return 1 / (1 + np.exp(-logits))
 
@@ -40,6 +40,8 @@ def binary_cross_entropy(Y, P):
     float
         average cross entropy.
     """
+    _check_size("m, m", Y, P)
+    Y = _check_labels(Y, 2)
     log1 = log_nowarn(P)
     log0 = log_nowarn(1 - P)
     e = -log1[Y == 1].sum() - log0[Y == 0].sum()
@@ -71,7 +73,8 @@ def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    Y = _check_binary_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b
@@ -114,7 +117,8 @@ def logreg_l2_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None,
     b : float
         learned bias.
     """
-    Y = _check_binary_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b
@@ -152,7 +156,8 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    Y = _check_binary_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b

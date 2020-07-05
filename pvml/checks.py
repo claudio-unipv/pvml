@@ -2,13 +2,25 @@ import numpy as np
 
 
 def _check_size(spec, *xs):
-    """Check that the arrays respect the specification."""
+    """Check that the arrays respect the specification.
+
+    spec is a string of comma separated specifications.  Each
+    specification apply to one element in xs.  The specification i a
+    list of letters representing the expected number of dimensions (*
+    if a scalar is expected).  If the same letter is used multiple
+    times, the the dimensions must match.
+
+    """
     ss = list(map(str.strip, spec.split(",")))
     if len(ss) != len(xs):
         msg = "Not enough arguments (expected {}, got {})"
         raise ValueError(msg.format(len(ss), len(xs)))
     dims = {}
     for s, x in zip(ss, xs):
+        if s == "*":
+            if not np.isscalar(x):
+                raise ValueError("Scalar value expected")
+            continue
         if len(s) != np.ndim(x):
             msg = "Expected an array of {} dimensions ({} dimensions found)"
             raise ValueError(msg.format(len(s), np.ndim(x)))

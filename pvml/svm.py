@@ -1,5 +1,5 @@
 import numpy as np
-from .checks import _check_binary_linear, _check_binary_classification
+from .checks import _check_size, _check_labels
 
 
 def svm_inference(X, w, b):
@@ -21,7 +21,7 @@ def svm_inference(X, w, b):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
-    _check_binary_linear(X, w, b)
+    _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     labels = (logits > 0).astype(int)
     return labels, logits
@@ -54,7 +54,8 @@ def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    _check_binary_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
     b = init_b
@@ -84,5 +85,7 @@ def hinge_loss(labels, logits):
     float
         average hinge loss.
     """
+    _check_size("m, m", labels, logits)
+    labels = _check_labels(labels, 2)
     loss = np.maximum(0, 1 - (2 * labels - 1) * logits)
     return loss.mean()

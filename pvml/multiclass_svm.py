@@ -1,6 +1,6 @@
 import numpy as np
 from .svm import svm_train
-from .checks import _check_linear, _check_classification
+from .checks import _check_size, _check_labels
 
 
 def one_vs_one_svm_inference(X, W, b):
@@ -22,7 +22,7 @@ def one_vs_one_svm_inference(X, W, b):
     ndarray, shape (m, k)
         classification scores.
     """
-    _check_linear(X, W, b)
+    _check_size("mn, ns, s", X, W, b)
     # 1) recover the number of classes from s = 1 + 2 + ... + k
     m = X.shape[0]
     s = b.size
@@ -69,7 +69,8 @@ def one_vs_one_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k * (k - 1) // 2,)
         vector of biases.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     m, n = X.shape
     W = np.zeros((n, k * (k - 1) // 2))
@@ -112,7 +113,7 @@ def one_vs_rest_svm_inference(X, W, b):
     ndarray, shape (m, k)
         classification scores.
     """
-    _check_linear(X, W, b)
+    _check_size("mn, nk, k", X, W, b)
     logits = X @ W + b.T
     labels = np.argmax(logits, 1)
     return labels, logits
@@ -146,7 +147,8 @@ def one_vs_rest_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k,)
         vector of biases.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     m, n = X.shape
     W = np.zeros((n, k))
