@@ -72,8 +72,9 @@ def one_vs_one_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
     Y = _check_classification(X, Y)
     k = Y.max() + 1
     m, n = X.shape
-    W = []
-    b = []
+    W = np.zeros((n, k * (k - 1) // 2))
+    b = np.zeros(k * (k - 1) // 2)
+    j = 0
     # For each pair of classes...
     for pos in range(k):
         for neg in range(pos + 1, k):
@@ -81,16 +82,14 @@ def one_vs_one_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
             subset = (np.logical_or(Y == pos, Y == neg)).nonzero()[0]
             Xbin = X[subset, :]
             Ybin = (Y[subset] == pos)
-            w1 = (None if init_w is None else init_w[:, len(W)])
-            b1 = (0 if init_b is None else init_b[len(b)])
+            w1 = (None if init_w is None else init_w[:, j])
+            b1 = (0 if init_b is None else init_b[j])
             # Train the classifier
             Wbin, bbin = svm_train(Xbin, Ybin, lambda_, lr=lr, steps=steps,
                                    init_w=w1, init_b=b1)
-            W.append(Wbin)
-            b.append(bbin)
-    # Convert lists into arrays
-    W = np.vstack(W).T
-    b = np.stack(b)
+            W[:, j] = Wbin
+            b[j] = bbin
+            j += 1
     return W, b
 
 

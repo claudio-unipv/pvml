@@ -322,7 +322,7 @@ class OvoSVMModel(DemoModel):
         self.W, self.b = ret
 
     def inference(self, X):
-        return pvml.one_vs_one_svm_inference(X, self.W, self. b)
+        return pvml.one_vs_one_svm_inference(X, self.W, self.b)
 
 
 @_register_model("ovr_svm")
@@ -339,7 +339,52 @@ class OvrSVMModel(DemoModel):
         self.W, self.b = ret
 
     def inference(self, X):
-        return pvml.one_vs_rest_svm_inference(X, self.W, self. b)
+        return pvml.one_vs_rest_svm_inference(X, self.W, self.b)
+
+
+@_register_model("ovo_ksvm")
+class OvoKSVMModel(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.Xtrain = None
+        self.alpha = None
+        self.b = None
+        self.kfun = args.kernel
+        self.kparam = args.kernel_param
+
+    def train_step(self, X, Y, steps):
+        self.Xtrain = X.copy()
+        ret = pvml.one_vs_one_ksvm_train(X, Y, self.kfun, self.kparam,
+                                         lr=self.lr, lambda_=self.lambda_,
+                                         steps=steps, init_alpha=self.alpha,
+                                         init_b=self.b)
+        self.alpha, self.b = ret
+
+    def inference(self, X):
+        return pvml.one_vs_one_ksvm_inference(X, self.Xtrain, self.alpha, self.b,
+                                              self.kfun, self.kparam)
+
+@_register_model("ovr_ksvm")
+class OvrKSVMModel(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, False)
+        self.Xtrain = None
+        self.alpha = None
+        self.b = None
+        self.kfun = args.kernel
+        self.kparam = args.kernel_param
+
+    def train_step(self, X, Y, steps):
+        self.Xtrain = X.copy()
+        ret = pvml.one_vs_rest_ksvm_train(X, Y, self.kfun, self.kparam,
+                                          lr=self.lr, lambda_=self.lambda_,
+                                          steps=steps, init_alpha=self.alpha,
+                                          init_b=self.b)
+        self.alpha, self.b = ret
+
+    def inference(self, X):
+        return pvml.one_vs_rest_ksvm_inference(X, self.Xtrain, self.alpha, self.b,
+                                               self.kfun, self.kparam)
 
 
 @_register_model("hgda")

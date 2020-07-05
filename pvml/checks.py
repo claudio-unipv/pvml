@@ -1,6 +1,40 @@
 import numpy as np
 
 
+def _check_size(spec, *xs):
+    """Check that the arrays respect the specification."""
+    ss = list(map(str.strip, spec.split(",")))
+    if len(ss) != len(xs):
+        msg = "Not enough arguments (expected {}, got {})"
+        raise ValueError(msg.format(len(ss), len(xs)))
+    dims = {}
+    for s, x in zip(ss, xs):
+        if len(s) != np.ndim(x):
+            msg = "Expected an array of {} dimensions ({} dimensions found)"
+            raise ValueError(msg.format(len(s), np.ndim(x)))
+        for n, d in enumerate(s):
+            k = x.shape[n]
+            if d not in dims:
+                dims[d] = k
+            elif k != dims[d]:
+                msg = "Dimensions do not agree (got {} and {})"
+                raise ValueError(msg.format(dims[d], k))
+
+
+def _check_labels(Y, nclasses=None):
+    """Check that data can represent class labels."""
+    if not np.issubdtype(Y.dtype, np.integer):
+        if np.abs(np.modf(Y)[0]).max() > 0:
+            raise ValueError("Expected integers")
+        Y = Y.astype(np.int32)
+    if Y.min() < 0:
+        raise ValueError("Labels cannot be negative")
+    if nclasses is not None and Y.max() >= nclasses:
+        msg = "Invalid labels (maximum is {}, got {})"
+        raise ValueError(msg.format(nclasses - 1, Y.max()))
+    return Y
+
+
 def _check_classification(X, Y):
     """Check that X, Y form a valid training set for classification.
 
