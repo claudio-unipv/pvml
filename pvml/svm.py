@@ -27,25 +27,6 @@ def svm_inference(X, w, b):
     return labels, logits
 
 
-def hinge_loss(labels, logits):
-    """Average hinge loss.
-
-    Parameters
-    ----------
-    labels : ndarray, shape (m,)
-        binary target labels (0 or 1).
-    logits : ndarray, shape (m,)
-        classification scores (logits).
-
-    Returns
-    -------
-    float
-        average hinge loss.
-    """
-    loss = np.maximum(0, 1 - (2 * labels - 1) * logits)
-    return loss.mean()
-
-
 def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     """Train a binary SVM classifier.
 
@@ -86,3 +67,22 @@ def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
         w -= lr * grad_w
         b -= lr * grad_b
     return w, b
+
+
+def hinge_loss(labels, logits):
+    """Average hinge loss.
+
+    Parameters
+    ----------
+    labels : ndarray, shape (m,)
+        binary target labels (0 or 1).
+    logits : ndarray, shape (m,)
+        classification scores (logits).
+
+    Returns
+    -------
+    float
+        average hinge loss.
+    """
+    loss = np.maximum(0, 1 - (2 * labels - 1) * logits)
+    return loss.mean()

@@ -40,7 +40,7 @@ class TestClassificationTree(unittest.TestCase):
         X = np.linspace(-1, 1, 10).reshape(5, 2)
         Y = np.arange(5)
         tree = pvml.ClassificationTree()
-        tree.train(X, Y, pruning_cv=0)        
+        tree.train(X, Y, pruning_cv=0)
         with self.assertRaises(ValueError):
             tree.inference(np.arange(5))
 
@@ -49,7 +49,7 @@ class TestClassificationTree(unittest.TestCase):
         X[:, 0] = 0
         Y = np.arange(5)
         tree = pvml.ClassificationTree()
-        tree.train(X, Y, pruning_cv=0)        
+        tree.train(X, Y, pruning_cv=0)
         with self.assertRaises(ValueError):
             X = np.linspace(-1, 1, 5).reshape(5, 1)
             tree.inference(X)

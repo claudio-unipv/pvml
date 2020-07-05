@@ -1,8 +1,10 @@
 TODO
 ====
 - Other clustering?
-- SVM
+- KSVM
   + add ovo and ovr
+  + better optimization algorithm?
+- OneHotVector class (if needed by RNN)
 - MLP
   + refactor the class with activations as attributes (?)
   + use attributes for activation instead of methods (?)
@@ -19,7 +21,7 @@ TODO
   + Better example with CNN or MLP (use Open AI gym?)
 - Input checks + better error messages
 - Unit test
-  + everything
+  + Mostly NN
 
 
 BUGS
