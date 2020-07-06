@@ -1,7 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
-from .checks import _check_classification, _check_categorical
-from .checks import _check_linear, _check_means
+from .checks import _check_size, _check_categorical, _check_labels
 
 
 def categorical_naive_bayes_train(X, Y, priors=None):
@@ -26,7 +25,8 @@ def categorical_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m, k?", X, Y, priors)
+    Y = _check_labels(Y)
     X = _check_categorical(X)
     m, n = X.shape
     q = X.max() + 1
@@ -64,6 +64,7 @@ def categorical_naive_bayes_inference(X, probs, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
+    _check_size("mn, knq, k", X, probs, priors)
     X = _check_categorical(X)
     q = probs.shape[2]
     X = np.clip(X.astype(int), 0, q - 1)
@@ -99,7 +100,8 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     b : ndarray, shape (k,)
          vector of biases.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m, k?", X, Y, priors)
+    Y = _check_labels(Y)
     X = _check_categorical(X)
     m, n = X.shape
     k = Y.max() + 1
@@ -134,7 +136,7 @@ def multinomial_naive_bayes_inference(X, W, b):
     ndarray, shape (m, k)
         prediction scores.
     """
-    _check_linear(X, W, b)
+    _check_size("mn, nk, k", X, W, b)
     scores = X @ W + b.T
     labels = np.argmax(scores, 1)
     return labels, scores
@@ -162,7 +164,8 @@ def gaussian_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m, k?", X, Y, priors)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     m, n = X.shape
     means = np.empty((k, n))
@@ -197,7 +200,7 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
-    _check_means(X, means)
+    _check_size("mn, kn, k", X, means, priors)
     diffs = (X[:, None, :] - means[None, :, :]) ** 2
     diffs /= vars[None, :, :]
     scores = -0.5 * diffs.sum(2) - 0.5 * np.log(vars).sum(1)[None, :]

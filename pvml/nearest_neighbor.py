@@ -1,5 +1,5 @@
 import numpy as np
-from .checks import _check_classification
+from .checks import _check_size, _check_labels
 
 
 def knn_inference(X, Xtrain, Ytrain, k=1):
@@ -27,7 +27,8 @@ def knn_inference(X, Xtrain, Ytrain, k=1):
         probability estimates (one per feature vector).
 
     """
-    Ytrain = _check_classification(Xtrain, Ytrain)
+    _check_size("mn, tn, t", X, Xtrain, Ytrain)
+    Ytrain = _check_labels(Ytrain)
     m = X.shape[0]
     classes = Ytrain.max() + 1
     D = _dist_matrix(X, Xtrain)
@@ -63,7 +64,8 @@ def knn_select_k(X, Y, maxk=101):
     float
         accuracy estimated for the best k.
     """
-    Y = _check_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y)
     D = _dist_matrix(X, X)
     m = X.shape[0]
     classes = Y.max() + 1

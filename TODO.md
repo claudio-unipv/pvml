@@ -19,7 +19,6 @@ TODO
   + GRU (?)
 - Reinforcement learning
   + Better example with CNN or MLP (use Open AI gym?)
-- Input checks + better error messages
 - Unit test
   + Mostly NN
 

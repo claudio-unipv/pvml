@@ -73,7 +73,7 @@ def logreg_train(X, Y, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    _check_size("mn, m", X, Y)
+    _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
@@ -117,7 +117,7 @@ def logreg_l2_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None,
     b : float
         learned bias.
     """
-    _check_size("mn, m", X, Y)
+    _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))
@@ -156,7 +156,7 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    _check_size("mn, m", X, Y)
+    _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
     w = (init_w if init_w is not None else np.zeros(n))

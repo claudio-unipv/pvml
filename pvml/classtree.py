@@ -1,5 +1,5 @@
 import numpy as np
-from .checks import _check_classification
+from .checks import _check_size, _check_labels
 from .utils import one_hot_vectors, log_nowarn
 
 
@@ -59,7 +59,8 @@ class ClassificationTree:
         ndarray, shape (m, k)
             class probabilities (one per feature vector).
         """
-        _check_inference(X, self)
+        _check_size("mn", X)
+        self._check_features(X)
         J = self._descend(X)
         probs = self.distribution[J, :]
         labels = probs.argmax(1)
@@ -82,7 +83,8 @@ class ClassificationTree:
             number of cross-validation folds used for cost-complexity
             pruning (0 disable pruning).
         """
-        Y = _check_classification(X, Y)
+        _check_size("mn, m", X, Y)
+        Y = _check_labels(Y)
         dfun = _DIVERSITY_FUN[diversity]
         m, n = X.shape
         k = Y.max() + 1
@@ -218,6 +220,11 @@ class ClassificationTree:
                          self._dumps(indent + 4, self.children[node, 1])])
         return s
 
+    def _check_features(self, X):
+        if X.shape[1] < self.feature.max() + 1:
+            msg = "Expected feature vectors with at least {} components (got {})."
+            raise ValueError(msg.format(self.feature.max() + 1, X.shape[1]))
+
 
 def _find_split(X, H, criterion, minsize):
     """Helper function that finds the best split.
@@ -324,12 +331,3 @@ def _decision_stump(x, h, criterion, minsize):
     best = sp[j]
     threshold = (x[ii[best + 1]] + x[ii[best]]) / 2
     return (threshold, cost[j])
-
-
-def _check_inference(X, tree):
-    if X.ndim != 2:
-        msg = "Features must form a bidimensional array ({} dimension(s) found)"
-        raise ValueError(msg.format(X.ndim))
-    if X.shape[1] < tree.feature.max() + 1:
-        msg = "Expected feature vectors with at least {} components (got {})."
-        raise ValueError(msg.format(tree.feature.max() + 1, X.shape[1]))

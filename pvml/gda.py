@@ -1,6 +1,6 @@
 import numpy as np
 from .utils import log_nowarn
-from .checks import _check_linear, _check_classification, _check_means
+from .checks import _check_size, _check_labels
 
 
 def hgda_train(X, Y, priors=None):
@@ -25,7 +25,8 @@ def hgda_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
-    _check_classification(X, Y)
+    _check_size("mn, m, k?", X, Y, priors)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     m, n = X.shape
     means = np.empty((k, n))
@@ -61,7 +62,7 @@ def hgda_inference(X, means, invcovs, priors):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
-    _check_means(X, means)
+    _check_size("mn, kn, knn, k", X, means, invcovs, priors)
     m, n = X.shape
     k = means.shape[0]
     scores = np.empty((m, k))
@@ -94,7 +95,8 @@ def ogda_train(X, Y, priors=None):
     b : ndarray, shape (k,)
          vector of biases.
     """
-    _check_classification(X, Y)
+    _check_size("mn, m, k?", X, Y, priors)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     m, n = X.shape
     means = np.empty((k, n))
@@ -131,7 +133,7 @@ def ogda_inference(X, W, b):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
-    _check_linear(X, W, b)
+    _check_size("mn, nk, k", X, W, b)
     scores = X @ W + b.T
     labels = np.argmin(scores, 1)
     return labels, -scores
@@ -152,7 +154,8 @@ def mindist_train(X, Y):
     means : ndarray, shape (k, n)
          class mean vectors.
     """
-    _check_classification(X, Y)
+    _check_size("mn, m", X, Y)
+    Y = _check_labels(Y)
     k = Y.max() + 1
     n = X.shape[1]
     means = np.empty((k, n))
@@ -179,7 +182,7 @@ def mindist_inference(X, means):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
-    _check_means(X, means)
+    _check_size("mn, kn", X, means)
     sqdists = ((X[:, None, :] - means[None, :, :]) ** 2).sum(2)
     labels = np.argmin(sqdists, 1)
     return labels, -sqdists

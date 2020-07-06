@@ -1,5 +1,5 @@
 import numpy as np
-from .checks import _check_binary_classification, _check_binary_linear
+from .checks import _check_size, _check_labels
 
 
 def perceptron_train(X, Y, steps=10000, init_w=None, init_b=0):
@@ -25,7 +25,8 @@ def perceptron_train(X, Y, steps=10000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    Y = _check_binary_classification(X, Y)
+    _check_size("mn, m, n?, *?", X, Y, init_w, init_b)
+    Y = _check_labels(Y)
     w = (init_w if init_w is not None else np.zeros(X.shape[1]))
     b = init_b
     for step in range(steps):
@@ -59,7 +60,7 @@ def perceptron_inference(X, w, b):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
-    _check_binary_linear(X, w, b)
+    _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     labels = (logits > 0).astype(int)
     return labels, logits
