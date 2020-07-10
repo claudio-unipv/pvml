@@ -2,7 +2,6 @@ TODO
 ====
 - Other clustering?
 - KSVM
-  + add ovo and ovr
   + better optimization algorithm?
 - OneHotVector class (if needed by RNN)
 - MLP
