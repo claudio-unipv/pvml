@@ -27,6 +27,7 @@ BUGS
 - resize update_b and update_w for transfer learning in pvmlnet
   + fix: refactor pvmlnet so that it is not a separate class but just
     an instance of CNN
+  + fix pad mode in PVML (or update to numpy >= 1.17)
 - error loading jpegs
   + fix: add pillow to the dependencies
 
