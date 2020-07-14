@@ -6,7 +6,6 @@ from .multinomial_logistic import softmax, cross_entropy
 
 # TODO:
 # - Docstrings
-# - multilayer
 # - tests
 # - load/save
 # - LSTM (peephole version?)
@@ -14,29 +13,38 @@ from .multinomial_logistic import softmax, cross_entropy
 
 class RNN:
     """Recurrent Neural Network."""
-    def __init__(self, input_size, hidden_size, output_size):
-        self.cell = RNNBasicCell(input_size, hidden_size)
-        self.W = np.random.randn(hidden_size, output_size) * np.sqrt(2 / hidden_size)
-        self.b = np.zeros(output_size)
+    def __init__(self, neuron_counts):
+        self.neuron_counts = neuron_counts
+        self.cells = [RNNBasicCell(n1, n2)
+                      for n1, n2 in zip(neuron_counts[:-2], neuron_counts[1:-1])]
+        self.W = (np.random.randn(neuron_counts[-2], neuron_counts[-1]) *
+                  np.sqrt(2 / neuron_counts[-2]))
+        self.b = np.zeros(neuron_counts[-1])
         self.reset_momentum()
 
     def reset_momentum(self):
         self.up_W = np.zeros_like(self.W)
         self.up_b = np.zeros_like(self.b)
-        self.up_p = [np.zeros_like(p) for p in self.cell.parameters()]
+        self.up_p = [[np.zeros_like(p) for p in c.parameters()] for c in self.cells]
 
     def forward(self, X):
-        init = np.zeros((X.shape[0], self.W.shape[0]))
-        H = self.cell.forward(X, init)
-        V = H @ self.W + self.b
+        m = X.shape[0]
+        Hs = [X]
+        for cell, h in zip(self.cells, self.neuron_counts[1:]):
+            X = cell.forward(X, np.zeros((m, h)))
+            Hs.append(X)
+        V = X @ self.W + self.b
         P = self.activation(V)
-        return H, P
+        return Hs, P
 
-    def backward(self, H, P, Y):
+    def backward(self, Hs, P, Y):
         DV = self.activation_backward(P, Y)
         DH = DV @ self.W.T
-        DZ = self.cell.backward(H, DH, np.zeros((H.shape[0], self.W.shape[0])))
-        return DZ, DV
+        DZs = []
+        for H, cell in zip(Hs[::-1], self.cells[::-1]):
+            DZ, DH = cell.backward(H, DH, np.zeros((H.shape[0], H.shape[2])))
+            DZs.append(DZ)
+        return DZs[::-1], DV
 
     def train(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99,
               steps=10000, batch=None):
@@ -82,41 +90,52 @@ class RNN:
                                  lambda_=lambda_,
                                  momentum=momentum)
             i += batch
-    
+
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
-        H, P = self.forward(X)
-        DZ, DV = self.backward(H, P, Y)
+        Hs, P = self.forward(X)
+        DZs, DV = self.backward(Hs, P, Y)
         h, k = self.W.shape
-        grad_W = H.reshape(-1, h).T @ DV.reshape(-1, k) + lambda_ * self.W
+        grad_W = Hs[-1].reshape(-1, h).T @ DV.reshape(-1, k) + lambda_ * self.W
         grad_b = DV.sum((0, 1))
-        grad_p = self.cell.parameters_grad(X, H, DZ, np.zeros((X.shape[0], h)))
+
+        grads = []
+        for cell, H, DZ, h in zip(self.cells, Hs[1:], DZs, self.neuron_counts[1:]):
+            init = np.zeros((X.shape[0], h))
+            g = cell.parameters_grad(X, H, DZ, init)
+            X = H
+            grads.append(g)
+
         self.up_W *= momentum
         self.up_W -= lr * grad_W
         self.W += self.up_W
         self.up_b *= momentum
         self.up_b -= lr * grad_b
         self.b += self.up_b
-        for u, p, g in zip(self.up_p, self.cell.parameters(), grad_p):
-            u *= momentum
-            u -= lr * g
-            p += u
+        for cell, grad, up in zip(self.cells, grads, self.up_p):
+            for u, p, g in zip(up, cell.parameters(), grad):
+                u *= momentum
+                u -= lr * g
+                p += u
 
     def save(self, filename):
         """Save the network to the file."""
-        np.savez(filename, W=self.W, b=self.b, cells=self.cells)
+        cell_params = [p for cell in self.cells for p in cell.parameters()]
+        np.savez(filename, neuron_counts=self.neuron_counts, W=self.W, b=self.b, *cell_params)
 
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        # !!!
-        data = np.load(filename, allow_pickle=True)
-        neurons = [w.shape[0] for w in data["weights"]]
-        neurons.append(data["weights"][-1].shape[1])
-        network = cls(neurons)
-        network.weights = data["weights"]
-        network.biases = data["biases"]
+        data = np.load(filename)
+        network = cls(data["neuron_counts"])
+        network.W[...] = data["W"]
+        network.b[...] = data["b"]
+        index = 0
+        for cell in network.cells:
+            for p in cell.parameters():
+                p[...] = data["arr_" + str(index)]
+                index += 1
         return network
-            
+
     def activation(self, V):
         m, t, n = V.shape
         return softmax(V.reshape(-1, n)).reshape(m, t, n)
@@ -202,7 +221,8 @@ class RNNBasicCell:
             DH = DL[:, i, :] + DZinit @ self.U.T
             DZinit = self.backward_activation(H[:, i, :]) * DH
             DZ[:, i, :] = DZinit
-        return DZ
+        DX = DZ @ self.W.T
+        return DZ, DX
 
     def forward_activation(self, X):
         return relu(X)
@@ -263,6 +283,7 @@ def _test():
             plt.title("DZ")
             plt.pause(0.05)
 
+
 def _test2():
     # rnn = RNN(1, 1, 2)
     # rnn.cell.W[0, 0] = 2
@@ -276,15 +297,17 @@ def _test2():
     import matplotlib.pyplot as plt
     plt.ion()
     m = 101
-    t = 10
+    t = 11
     h = 10
     delay = 3
     X = np.random.randint(0, 2, (m, t, 1))
     Y = np.zeros((m, t), dtype=int)
     Y[:, delay:] = X[:, :-delay, 0]
-    rnn = RNN(1, 5, t + 1)
-    for iter in range(0, 10000, 1000):
-        rnn.train(X, Y, lr=0.0001, steps=1000, batch=1)
+    rnn = RNN([1, h, t + 1])
+    rnn.save("ah.npz")
+    rnn = RNN.load("ah.npz")
+    for iter in range(0, 100000, 1000):
+        rnn.train(X, Y, lr=0.0001, steps=1000, batch=13)
         H, P = rnn.forward(X)
         loss = rnn.loss(Y, P)
         Z = P.argmax(-1)
@@ -304,5 +327,5 @@ def _test2():
         # plt.title("DZ")
         # plt.pause(0.05)
 
-            
+
 _test2()
