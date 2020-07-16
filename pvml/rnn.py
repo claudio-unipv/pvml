@@ -6,7 +6,6 @@ from .multinomial_logistic import softmax, cross_entropy
 
 # TODO:
 # - Docstrings
-# - 32 bit
 # - LSTM (peephole version?)
 
 
@@ -14,8 +13,8 @@ class RNN:
     """Recurrent Neural Network."""
     def __init__(self, neuron_counts):
         self.neuron_counts = neuron_counts
-        self.cells = [RNNBasicCell(n1, n2)
-                      for n1, n2 in zip(neuron_counts[:-2], neuron_counts[1:-1])]
+        connections = zip(neuron_counts[:-2], neuron_counts[1:-1])
+        self.cells = [RNNBasicCell(n1, n2) for n1, n2 in connections]
         self.W = (np.random.randn(neuron_counts[-2], neuron_counts[-1]) *
                   np.sqrt(2 / neuron_counts[-2]))
         self.b = np.zeros(neuron_counts[-1])
@@ -26,22 +25,26 @@ class RNN:
         self.up_b = np.zeros_like(self.b)
         self.up_p = [[np.zeros_like(p) for p in c.parameters()] for c in self.cells]
 
-    def forward(self, X):
+    def forward(self, X, inits=None):
         m = X.shape[0]
         Hs = [X]
-        for cell, h in zip(self.cells, self.neuron_counts[1:]):
-            X = cell.forward(X, np.zeros((m, h)))
+        if inits is None:
+            inits = [np.zeros((m, h)) for h in self.neuron_counts[1:-1]]
+        for cell, init in zip(self.cells, inits):
+            X = cell.forward(X, init)
             Hs.append(X)
         V = X @ self.W + self.b
         P = self.activation(V)
         return Hs, P
 
-    def backward(self, Hs, P, Y):
+    def backward(self, Hs, P, Y, inits=None):
         DV = self.activation_backward(P, Y)
         DH = DV @ self.W.T
         DZs = []
-        for H, cell in zip(Hs[::-1], self.cells[::-1]):
-            DZ, DH = cell.backward(H, DH, np.zeros((H.shape[0], H.shape[2])))
+        if inits is None:
+            inits = [np.zeros((P.shape[0], h)) for h in self.neuron_counts[1:-1]]
+        for H, cell, init in zip(Hs[::-1], self.cells[::-1], inits[::-1]):
+            DZ, DH = cell.backward(H, DH, init)
             DZs.append(DZ)
         return DZs[::-1], DH, DV
 
@@ -210,6 +213,26 @@ class RNNBasicCell:
         return H
 
     def backward(self, H, DL, DZinit):
+        """Backward step: return derivatives computed for all time steps.
+
+        Parameters
+        ----------
+        H : ndarray, shape (m, t, h)
+            sequence of states obtained in the forward step.
+        DL : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the corresponding states.
+        DZinit : ndarray, shape (m, h)
+            derivative of the total loss with respect to the last logits obtained in the forward
+            step.
+
+        Returns
+        -------
+        DZ : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the logits.
+        DX : ndarray, shape (m, t, n)
+            derivative of the losses at each time steps with respect to the inputs.
+        """
+
         _check_size("mth, mth, mh", H, DL, DZinit)
         m, t, n = H.shape
         DZ = np.empty_like(H)
@@ -221,15 +244,19 @@ class RNNBasicCell:
         return DZ, DX
 
     def forward_activation(self, X):
+        """Activation function."""
         return relu(X)
 
     def backward_activation(self, H):
+        """Derivative of the activation, given the activation values."""
         return (H > 0).astype(float)
 
     def parameters(self):
+        """List of parameters of the cell."""
         return (self.W, self.U, self.b)
 
     def parameters_grad(self, X, H, DZ, DZinit):
+        """Derivative of the total loss with respect to the parameters of the cell."""
         n, h = self.W.shape
         DV = H[:, :-1, :].reshape(-1, h).T @ DZ[:, 1:, :].reshape(-1, h)
         DV += H[:, -1, :].T @ DZinit
