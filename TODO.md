@@ -17,7 +17,6 @@ TODO
   + refactor load/save to not use pickle
   + reset_momentum method
 - RNN
-  + Basic
   + LSTM (peephole?)
   + GRU (?)
 - Reinforcement learning
