@@ -167,7 +167,6 @@ class RNNBasicCell:
     #   Z[t] = W X[t] + U H[t - 1] + b
     #   H[t] = a(Z[t])
     #   H[t] -> L[t]
-    #   loss = sum(L[t])
     #
     # Backward pass, given DL[t] = dL[t] / dH[t]:
     #   DH[t] = DL[t] + U^T DZ[t + 1]
@@ -204,7 +203,124 @@ class RNNBasicCell:
         """
         _check_size("mtn, mh, nh", X, Hinit, self.W)
         m, t, n = X.shape
-        X1 = (X.reshape(-1, n) @ self.W).reshape(m, t, -1) + self.b
+        X1 = X @ self.W + self.b
+        H = np.empty_like(X1)
+        for i in range(0, t):
+            Z = X1[:, i, :] + Hinit @ self.U
+            H[:, i, :] = self.forward_activation(Z)
+            Hinit = H[:, i, :]
+        return H
+
+    def backward(self, H, DL, DZinit):
+        """Backward step: return derivatives computed for all time steps.
+
+        Parameters
+        ----------
+        H : ndarray, shape (m, t, h)
+            sequence of states obtained in the forward step.
+        DL : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the corresponding states.
+        DZinit : ndarray, shape (m, h)
+            derivative of the total loss with respect to the last logits obtained in the forward
+            step.
+
+        Returns
+        -------
+        DZ : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the logits.
+        DX : ndarray, shape (m, t, n)
+            derivative of the losses at each time steps with respect to the inputs.
+        """
+
+        _check_size("mth, mth, mh", H, DL, DZinit)
+        m, t, n = H.shape
+        DZ = np.empty_like(H)
+        for i in range(t - 1, -1, -1):
+            DH = DL[:, i, :] + DZinit @ self.U.T
+            DZinit = self.backward_activation(H[:, i, :]) * DH
+            DZ[:, i, :] = DZinit
+        DX = DZ @ self.W.T
+        return DZ, DX
+
+    def forward_activation(self, X):
+        """Activation function."""
+        return relu(X)
+
+    def backward_activation(self, H):
+        """Derivative of the activation, given the activation values."""
+        return (H > 0).astype(float)
+
+    def parameters(self):
+        """List of parameters of the cell."""
+        return (self.W, self.U, self.b)
+
+    def parameters_grad(self, X, H, DZ, DZinit):
+        """Derivative of the total loss with respect to the parameters of the cell."""
+        n, h = self.W.shape
+        DV = H[:, :-1, :].reshape(-1, h).T @ DZ[:, 1:, :].reshape(-1, h)
+        DV += H[:, -1, :].T @ DZinit
+        Db = DZ.sum((0, 1))
+        DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
+        return (DW, DV, Db)
+
+
+class LSTMCell:
+    """A recurrent LSTM cell.
+
+    Actually, a peephole variant is implemented.
+    """
+    #
+    # Forward pass, given X:
+    #   F[t] = sigmoid(U_f C[t - 1] + W_f X + b_f)
+    #   I[t] = sigmoid(U_i C[t - 1] + W_i X + b_i)
+    #   O[t] = sigmoid(U_o C[t - 1] + W_o X + b_o)
+    #   C[t] = F[t] * C[t - 1] + I[t] * tanh(W_c X + b_c)
+    #   H[t] = O[t] * tanh(C[t])
+    #   H[t] -> L[t]
+    #
+    # Backward pass, given DL[t] = dL[t] / dH[t]:
+    #   !!!
+    #   DH[t] = DL[t] + U^T DZ[t + 1]
+    #   DZ[t] = DH[t] * a'(Z[t])
+    #
+    def __init__(self, input_size, hidden_size):
+        """Initialize the cell.
+
+        Parameters
+        ----------
+        input_size : int
+            number of input neurons.
+        hidden_size : int
+            number of hidden neurons.
+        """
+        dev = np.sqrt(2 / input_size)
+        init = [np.random.randn(input_size, hidden_size) * dev for _ in range(4)]
+        self.W_f, self.W_i, self.W_o, self.W_c = init
+        dev = np.sqrt(2 / hidden_size)
+        init = [np.random.randn(hidden_size, hidden_size) * dev for _ in range(3)]
+        self.U_f, self.U_i, self.U_o = init
+        self.b_i, self.b_f, self.b_o, self.b_c = [np.zeros(hidden_size) for _ in range(4)]
+
+    def forward(self, X, Hinit):
+        """Forward step: return the hidden state at each time step.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            sequence of input features (m sequences, t time steps, n components).
+        Hinit : ndarray, shape (m, h)
+            intial state (one vector for each input sequence).
+
+        Returns
+        -------
+        H : ndarray, shape (m, t, h)
+            sequence of hidden states (m sequences, t time steps, h units).
+        """
+        _check_size("mtn, mh, nh", X, Hinit, self.W_f)
+        m, t, n = X.shape
+        X_f = (X.reshape(-1, n) @ self.W_f).reshape(m, t, -1) + self.b_f
+        X_i = (X.reshape(-1, n) @ self.W_i).reshape(m, t, -1) + self.b_i
+        X_o = (X.reshape(-1, n) @ self.W_o).reshape(m, t, -1) + self.b_o        
         H = np.empty_like(X1)
         for i in range(0, t):
             Z = X1[:, i, :] + Hinit @ self.U
