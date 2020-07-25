@@ -7,6 +7,7 @@ from .multinomial_logistic import softmax, cross_entropy
 # TODO:
 # - Docstrings
 # - LSTM (peephole version?)
+# - move sigmoid to "functions? activations?"
 
 
 class RNN:
@@ -301,14 +302,14 @@ class LSTMCell:
         self.U_f, self.U_i, self.U_o = init
         self.b_i, self.b_f, self.b_o, self.b_c = [np.zeros(hidden_size) for _ in range(4)]
 
-    def forward(self, X, Hinit):
+    def forward(self, X, Cinit):
         """Forward step: return the hidden state at each time step.
 
         Parameters
         ----------
         X : ndarray, shape (m, t, n)
             sequence of input features (m sequences, t time steps, n components).
-        Hinit : ndarray, shape (m, h)
+        Cinit : ndarray, shape (m, h)
             intial state (one vector for each input sequence).
 
         Returns
@@ -316,16 +317,21 @@ class LSTMCell:
         H : ndarray, shape (m, t, h)
             sequence of hidden states (m sequences, t time steps, h units).
         """
-        _check_size("mtn, mh, nh", X, Hinit, self.W_f)
+        _check_size("mtn, mh, nh", X, Cinit, self.W_f)
         m, t, n = X.shape
-        X_f = (X.reshape(-1, n) @ self.W_f).reshape(m, t, -1) + self.b_f
-        X_i = (X.reshape(-1, n) @ self.W_i).reshape(m, t, -1) + self.b_i
-        X_o = (X.reshape(-1, n) @ self.W_o).reshape(m, t, -1) + self.b_o        
-        H = np.empty_like(X1)
+        X_f = X @ self.W_f + self.b_f
+        X_i = X @ self.W_i + self.b_i
+        X_o = X @ self.W_o + self.b_o
+        Cnew = np.tanh(X @ self.W_c + self.b_c)
+        H = np.empty_like(X_f)
+        C = Cinit
         for i in range(0, t):
-            Z = X1[:, i, :] + Hinit @ self.U
-            H[:, i, :] = self.forward_activation(Z)
-            Hinit = H[:, i, :]
+            F = sigmoid(X_f[:, i, :] + C @ self.U_f)
+            I = sigmoid(X_i[:, i, :] + C @ self.U_i)
+            O = sigmoid(X_o[:, i, :] + C @ self.U_o)
+            C *= F
+            C += I * Cnew[:, i, :]
+            H[:, i, :] = O * self.forward_activation(C)
         return H
 
     def backward(self, H, DL, DZinit):
@@ -361,15 +367,18 @@ class LSTMCell:
 
     def forward_activation(self, X):
         """Activation function."""
-        return relu(X)
+        return np.tanh(X)
 
     def backward_activation(self, H):
         """Derivative of the activation, given the activation values."""
-        return (H > 0).astype(float)
+        return 1 - H ** 2
 
     def parameters(self):
         """List of parameters of the cell."""
-        return (self.W, self.U, self.b)
+        return (self.W_f, self.U_f, self.b_f,
+                self.W_i, self.U_i, self.b_i,
+                self.W_o, self.U_o, self.b_o,
+                self.W_c, self.b_c)
 
     def parameters_grad(self, X, H, DZ, DZinit):
         """Derivative of the total loss with respect to the parameters of the cell."""
@@ -379,3 +388,7 @@ class LSTMCell:
         Db = DZ.sum((0, 1))
         DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
         return (DW, DV, Db)
+
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
