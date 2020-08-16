@@ -2,11 +2,13 @@ import numpy as np
 from .checks import _check_size, _check_labels
 from .mlp import relu
 from .multinomial_logistic import softmax, cross_entropy
+from .logistic_regression import sigmoid
 
 
 # TODO:
 # - Docstrings
 # - LSTM (peephole version?)
+# - GRU
 
 
 class RNN:
@@ -204,6 +206,7 @@ class RNNBasicCell:
         """
         _check_size("mtn, mh, nh", X, Hinit, self.W)
         m, t, n = X.shape
+        # X1 = (X.reshape(-1, n) @ self.W).reshape(m, t, -1) + self.b
         X1 = X @ self.W + self.b
         H = np.empty_like(X1)
         for i in range(0, t):
@@ -247,13 +250,155 @@ class RNNBasicCell:
         """Activation function."""
         return relu(X)
 
-    def backward_activation(self, H):
+    def backward_activation(self, A):
         """Derivative of the activation, given the activation values."""
-        return (H > 0).astype(float)
+        return (A > 0).astype(float)
 
     def parameters(self):
         """List of parameters of the cell."""
         return (self.W, self.U, self.b)
+
+    def parameters_grad(self, X, H, DZ, DZinit):
+        """Derivative of the total loss with respect to the parameters of the cell."""
+        n, h = self.W.shape
+        DV = H[:, :-1, :].reshape(-1, h).T @ DZ[:, 1:, :].reshape(-1, h)
+        DV += H[:, -1, :].T @ DZinit
+        Db = DZ.sum((0, 1))
+        DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
+        return (DW, DV, Db)
+
+class GRUCell:
+    """Gated Recurring Unit cell."""
+    #
+    # Forward pass, given X:
+    #   Sz[t] = Wz X[t] + Uz H[t - 1] + bz
+    #   Z[t] = sigmoid(Sz[t])
+    #   Sr[t] = Wr X[t] + Ur H[t - 1] + br
+    #   R[t] = sigmoid(Sr[t])
+    #   Sh[t] = Wh X[t] + Uh (R[t] * H[t - 1]) + bh
+    #   H[t] = (1 - Z[t]) * H[t - 1] + Z[t] * a(Sh[t])
+    #   H[t] -> L[t]
+    #   loss = sum(L[t])
+    #
+    # Backward pass, given DL[t] = dL[t] / dH[t]:
+    #   !!! DH[t] = DL[t] + U^T DZ[t + 1]
+    #   !!! DZ[t] = DH[t] * a'(Z[t])
+    #
+    def __init__(self, input_size, hidden_size):
+        """Initialize the cell.
+
+        Parameters
+        ----------
+        input_size : int
+            number of input neurons.
+        hidden_size : int
+            number of hidden neurons.
+        """
+        self.Wz = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
+        self.Uz = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
+        self.bz = np.zeros(hidden_size)
+        self.Wr = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
+        self.Ur = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
+        self.br = np.zeros(hidden_size)
+        self.Wh = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
+        self.Uh = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
+        self.bh = np.zeros(hidden_size)
+
+    def forward(self, X, Hinit):
+        """Forward step: return the hidden state at each time step.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            sequence of input features (m sequences, t time steps, n components).
+        Hinit : ndarray, shape (m, h)
+            intial state (one vector for each input sequence).
+
+        Returns
+        -------
+        H : ndarray, shape (m, t, h)
+            sequence of hidden states (m sequences, t time steps, h units).
+        """
+        _check_size("mtn, mh, nh", X, Hinit, self.Wz)
+        m, t, n = X.shape
+        Xz = X @ self.Wz + self.bz
+        Xr = X @ self.Wr + self.br
+        Xh = X @ self.Wh + self.bh
+        H = np.empty_like(Xz)
+        for i in range(0, t):
+            Sz = Xz[:, i, :] + Hinit @ self.Uz
+            Z = sigmoid(Sz)
+            Sr = Xr[:, i, :] + Hinit @ self.Ur
+            R = sigmoid(Sr)
+            Sh = Xh[:, i, :] + (R * Hinit) @ self.Uh
+            Hnew = self.forward_activation(Sh)
+            Hinit = (1 - Z) * Hinit + Z * Hnew
+            H[:, i, :] = Hinit
+        return H
+
+    def backward(self, X, H, DL, Dinit, Hinit):
+        """Backward step: return derivatives computed for all time steps.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            sequence of input features (m sequences, t time steps, n components).
+        H : ndarray, shape (m, t, h)
+            sequence of states obtained in the forward step.
+        DL : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the corresponding states.
+        Dinit : ndarray, shape (m, h)
+            derivative of the total loss with respect to the last logits obtained in the forward
+            step.
+        Hinit : ndarray, shape (m, h)
+            intial state (one vector for each input sequence).
+
+        Returns
+        -------
+        DZ : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the logits.
+        DX : ndarray, shape (m, t, n)
+            derivative of the losses at each time steps with respect to the inputs.
+        """
+
+        _check_size("mtn, mth, mth, mh, mh", X, H, DL, Dinit, Hinit)
+        m, t, n = H.shape
+        Hold = np.concatenate((Hinit[:, None, :], H[:, :-1, :]), 1)
+        Sz = X @ self.Wz + Hold @ self.Uz + self.bz
+        Z = sigmoid(Sz)
+        Sr = X @ self.Wr + Hold @ self.Ur + self.br
+        R = sigmoid(Sr)
+        Sh = X @ self.Wh + (Hold * R) @ self.Uh + self.bh
+        Hnew = self.forward_activation(Sh)
+        DHnew = DL * Z
+        DZ = DL * (Hnew - Hold)
+        DSz = DZ * Z * (1 - Z)
+        backact = self.backward_activation(Hnew)
+        DSh = DL * Z * backact
+        DR = ((DSh * Hold) @ self.Uh.T)
+        breakpoint()
+        DSr = DR * R * (1 - R)
+        DH = np.empty_like(H)
+        DH[:, -1, :] = Dinit * (1 - Z[:, -1, :])
+        for i in range(t - 2, -1, -1):
+            DH[:, i, :] = DH[:, i + 1, :] * (1 - Z[:, i, :])
+            DH[:, i, :] += DSz[:, i + 1, :] @ self.Uz.T
+            DH[:, i, :] += DSr[:, i + 1, :] @ self.Ur.T 
+            DH[:, i, :] += (Hold[:, i, :] * Z[:, i, :] * backact[:, i, :]) @ self.Uh.T
+        DX = DSz @ self.Wz.T + DSr @ self.Wr.T + DSh @ self.Wh.T
+        return DZ, DX
+
+    def forward_activation(self, X):
+        """Activation function."""
+        return np.tanh(X)
+
+    def backward_activation(self, A):
+        """Derivative of the activation, given the activation values."""
+        return 1 - (A ** 2)
+
+    def parameters(self):
+        """List of parameters of the cell."""
+        return (self.Wz, self.Uz, self.bz, self.Wr, self.Ur, self.br, self.Wh, self.Uh, self.bh)
 
     def parameters_grad(self, X, H, DZ, DZinit):
         """Derivative of the total loss with respect to the parameters of the cell."""
