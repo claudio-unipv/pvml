@@ -204,7 +204,7 @@ class RNNBasicCell:
         """
         _check_size("mtn, mh, nh", X, Hinit, self.W)
         m, t, n = X.shape
-        X1 = (X.reshape(-1, n) @ self.W).reshape(m, t, -1) + self.b
+        X1 = X @ self.W + self.b
         H = np.empty_like(X1)
         for i in range(0, t):
             Z = X1[:, i, :] + Hinit @ self.U
