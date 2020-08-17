@@ -135,59 +135,6 @@ class TestGRUCell(unittest.TestCase):
                 self.assertAlmostEqual(DX[index], D, 5)
             X[index] = backup
 
-    @unittest.skip("temp")
-    def test_temp(self):
-        n, h, m, t = 1, 1, 1, 3  #2, 2, 2, 3
-        init = np.zeros((m, h))
-        cell = pvml.GRUCell(n, h)
-        X = np.random.randn(m, t, n)
-
-        # cell.bz[...] = 0
-        # cell.br[...] = 0
-        # cell.bh[...] = 0
-        # cell.Wz[...] = 1
-        # cell.Wr[...] = 2
-        # cell.Wh[...] = 1
-        # cell.Uz[...] = 0.5
-        # cell.Ur[...] = 0.5
-        # cell.Uh[...] = 0.5
-        # init[...] = 0
-        # X[...] = 1
-        
-        H = cell.forward(X, init)
-        DL = np.ones_like(H)
-        DX = cell.backward(DL)
-        L0 = H.sum()
-        eps = 1e-7
-
-        pvml.rnn._eps = 1e-7
-        H1 = cell.forward(X, init)
-        L1 = H1.sum()
-
-        D = (L1 - L0) / pvml.rnn._eps
-        print("D =", D)
-            
-    @unittest.skip("temp")
-    def test_gradientX2(self):
-        print("=======================================================")
-        n, h, m, t = 1, 1, 1, 3
-        hinit = np.zeros((m, h))
-        dinit = np.zeros((m, h))
-        cell = pvml.GRUCell(n, h)
-        cell.Uh = np.eye(h) # !!!
-        X = np.random.randn(m, t, n)
-        pvml.rnn._eps = 0
-        H = cell.forward(X, hinit)
-        L0 = H.sum()
-        DL = np.ones_like(H)
-        DZ, DX = cell.backward(X, H, DL, dinit, hinit)
-        pvml.rnn._eps = 1e-7
-        H = cell.forward(X, hinit)
-        L1 = H.sum()
-        D = (L1 - L0) / pvml.rnn._eps
-        print(D)
-
-    @unittest.skip("TODO")
     def test_gradientW(self):
         """Test the gradient of the loss wrt the parameters.
 
@@ -195,12 +142,12 @@ class TestGRUCell(unittest.TestCase):
         """
         n, h, m, t = 3, 2, 4, 5
         init = np.zeros((m, h))
-        cell = pvml.RNNBasicCell(n, h)
+        cell = pvml.GRUCell(n, h)
         X = np.random.randn(m, t, n)
         H = cell.forward(X, np.zeros((m, h)))
         L = H.sum()
-        DZ = cell.backward(H, np.ones_like(H), init)[0]
-        gradients = cell.parameters_grad(X, H, DZ, init)
+        DX = cell.backward(np.ones_like(H))
+        gradients = cell.parameters_grad()
         eps = 1e-7
         for p in range(3):
             for index in np.ndindex(*gradients[p].shape):

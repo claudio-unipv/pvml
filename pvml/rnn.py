@@ -7,7 +7,9 @@ from .logistic_regression import sigmoid
 
 # TODO:
 # - Docstrings
-# - LSTM (peephole version?)
+# - misc comments
+# - notes for GRU backprop
+# - flake8
 # - GRU
 
 
@@ -97,7 +99,7 @@ class RNN:
         grad_W = self.H.reshape(-1, h).T @ self.DV.reshape(-1, k) + lambda_ * self.W
         grad_b = self.DV.sum((0, 1))
         grads = [cell.parameters_grad() for cell in self.cells]
-        
+
         self.up_W *= momentum
         self.up_W -= lr * grad_W
         self.W += self.up_W
@@ -185,7 +187,7 @@ class RNNBasicCell:
         self.X = np.empty((0, 0, input_size))
         self.Z = np.empty((0, 0, hidden_size))
         self.H = np.empty((0, 0, hidden_size))
-        
+
     def forward(self, X, Hinit):
         """Forward step: return the hidden state at each time step.
 
@@ -418,11 +420,18 @@ class GRUCell:
         """List of parameters of the cell."""
         return (self.Wz, self.Uz, self.bz, self.Wr, self.Ur, self.br, self.Wh, self.Uh, self.bh)
 
-    def parameters_grad(self, X, H, DZ, DZinit):
+    def parameters_grad(self):
         """Derivative of the total loss with respect to the parameters of the cell."""
-        n, h = self.W.shape
-        DV = H[:, :-1, :].reshape(-1, h).T @ DZ[:, 1:, :].reshape(-1, h)
-        DV += H[:, -1, :].T @ DZinit
-        Db = DZ.sum((0, 1))
-        DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
-        return (DW, DV, Db)
+        n, h = self.Wz.shape
+        Hold = np.concatenate((self.Hinit[:, None, :], self.H[:, :-1, :]), 1)
+        Hold = Hold.reshape(-1, h)
+        DWz = self.X.reshape(-1, n).T @ self.DSz.reshape(-1, h)
+        DWr = self.X.reshape(-1, n).T @ self.DSr.reshape(-1, h)
+        DWh = self.X.reshape(-1, n).T @ self.DSh.reshape(-1, h)
+        DUz = Hold.T @ self.DSz.reshape(-1, h)
+        DUr = (self.R.reshape(-1, h) * Hold).T @ self.DSr.reshape(-1, h)
+        DUh = Hold.T @ self.DSh.reshape(-1, h)
+        Dbz = self.DSz.sum(1).sum(0)
+        Dbr = self.DSr.sum(1).sum(0)
+        Dbh = self.DSh.sum(1).sum(0)
+        return (DWz, DUz, Dbz, DWr, DUr, Dbr, DWh, DUh, Dbh)
