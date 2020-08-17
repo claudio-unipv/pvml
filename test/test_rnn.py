@@ -23,7 +23,7 @@ class TestRNNBaseCell(unittest.TestCase):
         cell.backward(np.ones_like(H))
         gradients = cell.parameters_grad()
         eps = 1e-7
-        for p in range(3):
+        for p in range(len(gradients)):
             for index in np.ndindex(*gradients[p].shape):
                 backup = cell.parameters()[p][index]
                 with self.subTest(parameter=p, index=index):
@@ -149,7 +149,7 @@ class TestGRUCell(unittest.TestCase):
         cell.backward(np.ones_like(H))
         gradients = cell.parameters_grad()
         eps = 1e-7
-        for p in range(3):
+        for p in range(len(gradients)):
             for index in np.ndindex(*gradients[p].shape):
                 backup = cell.parameters()[p][index]
                 with self.subTest(parameter=p, index=index):
