@@ -177,11 +177,10 @@ def sigmoid(z):
     ----------
     z : ndarray
          input
-    
+
     Returns
     -------
     ndarray, (same shape of z)
         the sigmoid of z
-    
     """
     return 1 / (1 + np.exp(-z))

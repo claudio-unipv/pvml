@@ -20,7 +20,7 @@ class TestRNNBaseCell(unittest.TestCase):
         X = np.random.randn(m, t, n)
         H = cell.forward(X, np.zeros((m, h)))
         L = H.sum()
-        DX = cell.backward(np.ones_like(H))
+        cell.backward(np.ones_like(H))
         gradients = cell.parameters_grad()
         eps = 1e-7
         for p in range(3):
@@ -112,11 +112,11 @@ class TestGRUCell(unittest.TestCase):
         init = np.zeros((m, h))
         cell = pvml.GRUCell(n, h)
         X = np.random.randn(m, t, n)
-        H = cell.forward(X, np.zeros((m, h)))
+        H = cell.forward(X, init)
         self.assertEqual(H.shape, (m, t, h))
 
     def test_gradientX(self):
-        n, h, m, t = 1, 1, 1, 2  #2, 2, 2, 3
+        n, h, m, t = 2, 2, 2, 3
         init = np.zeros((m, h))
         cell = pvml.GRUCell(n, h)
         X = np.random.randn(m, t, n)
@@ -146,7 +146,7 @@ class TestGRUCell(unittest.TestCase):
         X = np.random.randn(m, t, n)
         H = cell.forward(X, np.zeros((m, h)))
         L = H.sum()
-        DX = cell.backward(np.ones_like(H))
+        cell.backward(np.ones_like(H))
         gradients = cell.parameters_grad()
         eps = 1e-7
         for p in range(3):

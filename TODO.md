@@ -17,8 +17,9 @@ TODO
   + refactor load/save to not use pickle
   + reset_momentum method
 - RNN
-  + LSTM (peephole?)
-  + GRU (?)
+  + LSTM?
+  + ~~GRU (?)~~
+  + RNN example
 - Reinforcement learning
   + Better example with CNN or MLP (use Open AI gym?)
 - Unit test

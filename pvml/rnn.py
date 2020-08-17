@@ -5,31 +5,40 @@ from .multinomial_logistic import softmax, cross_entropy
 from .logistic_regression import sigmoid
 
 
-# TODO:
-# - Docstrings
-# - misc comments
-# - notes for GRU backprop
-# - flake8
-# - GRU
-
-
 class RNN:
     """Recurrent Neural Network."""
-    def __init__(self, neuron_counts):
+    def __init__(self, neuron_counts, cell_type="basic"):
+        """Create the RNN."""
         self.neuron_counts = neuron_counts
         connections = zip(neuron_counts[:-2], neuron_counts[1:-1])
-        self.cells = [RNNBasicCell(n1, n2) for n1, n2 in connections]
+        cell_factory = _CELL_TYPES[cell_type.lower()]
+        self.cells = [cell_factory(n1, n2) for n1, n2 in connections]
         self.W = (np.random.randn(neuron_counts[-2], neuron_counts[-1]) *
                   np.sqrt(2 / neuron_counts[-2]))
         self.b = np.zeros(neuron_counts[-1])
         self.reset_momentum()
 
     def reset_momentum(self):
+        """Set to zero the accumulators for momentum."""
         self.up_W = np.zeros_like(self.W)
         self.up_b = np.zeros_like(self.b)
         self.up_p = [[np.zeros_like(p) for p in c.parameters()] for c in self.cells]
 
     def forward(self, X, inits=None):
+        """Forward step of the RNN.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            sequence of input features (m sequences, t time steps, n components).
+        inits : list
+            list of initial states, one for each RNN layer (default use zeros).
+
+        Returns
+        -------
+        P : ndarray, shape (m, t, k)
+            sequence of output estimates (m sequences, t time steps, k output estimates).
+        """
         m = X.shape[0]
         if inits is None:
             inits = [np.zeros((m, h)) for h in self.neuron_counts[1:-1]]
@@ -43,6 +52,18 @@ class RNN:
         return P
 
     def backward(self, Y):
+        """Backward step of the RNN.
+
+        Parameters
+        ----------
+        Y : ndarray, shape (m,) or (m, t)
+            target output (integer class labels, one per sequence or one per sequence element).
+
+        Returns
+        -------
+        D : ndarray, shape (m, t, n)
+            derivative of the losses at each time steps with respect to the inputs.
+        """
         DV = self.activation_backward(self.P, Y)
         D = DV @ self.W.T
         for cell in self.cells[::-1]:
@@ -59,7 +80,7 @@ class RNN:
         Parameters
         ----------
         X : ndarray, shape (m, t, n)
-            input sequences (a batch of m sequences of length t and with n features).
+            input sequences (m sequences of length t and with n features).
         Y : ndarray, shape (m,) or (m, t)
             target output (integer class labels, one per sequence or one per sequence element).
         lr : float
@@ -93,8 +114,23 @@ class RNN:
             i += batch
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
-        P = self.forward(X)
-        D = self.backward(Y)
+        """Backpropagation algorithm
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            input sequences (a batch of m sequences of length t and with n features).
+        Y : ndarray, shape (m,) or (m, t)
+            target output (integer class labels, one per sequence or one per sequence element).
+        lr : float
+            learning rate.
+        lambda_ : float
+            regularization coefficients.
+        momentum : float
+            momentum coefficient.
+        """
+        self.forward(X)
+        self.backward(Y)
         h, k = self.W.shape
         grad_W = self.H.reshape(-1, h).T @ self.DV.reshape(-1, k) + lambda_ * self.W
         grad_b = self.DV.sum((0, 1))
@@ -132,10 +168,12 @@ class RNN:
         return network
 
     def activation(self, V):
+        """Final activation function."""
         m, t, n = V.shape
         return softmax(V.reshape(-1, n)).reshape(m, t, n)
 
     def activation_backward(self, P, Y):
+        """Derivatives of the final activation function."""
         if Y.ndim == 1:
             D = np.zeros_like(P)
             D[:, -1, :] = P[:, -1, :]
@@ -156,19 +194,64 @@ class RNN:
             return cross_entropy(Y.reshape(-1), P.reshape(Y.size, -1))
 
 
-class RNNBasicCell:
+class RNNAbstractCell:
+    """A cell for building RNNs."""
+    def forward(self, X, Hinit):
+        """Forward step: return the hidden state at each time step.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            sequence of input features (m sequences, t time steps, n components).
+        Hinit : ndarray, shape (m, h)
+            intial state (one vector for each input sequence).
+
+        Returns
+        -------
+        H : ndarray, shape (m, t, h)
+            sequence of hidden states (m sequences, t time steps, h units).
+        """
+        raise NotImplementedError
+
+    def backward(self, DL):
+        """Backward step: return derivatives computed for all time steps.
+
+        Parameters
+        ----------
+        DL : ndarray, shape (m, t, h)
+            derivative of the losses at each time steps with respect to the corresponding states.
+
+        Returns
+        -------
+        DX : ndarray, shape (m, t, n)
+            derivative of the losses at each time steps with respect to the inputs.
+        """
+        raise NotImplementedError
+
+    def parameters(self):
+        """List of parameters of the cell.
+
+        Returns
+        -------
+        params : list
+            list of arrays representing the parameters of the cell.
+        """
+        raise NotImplementedError
+
+    def parameters_grad(self):
+        """Derivative of the total loss with respect to the parameters of the cell.
+
+        Returns
+        -------
+        params : list
+            list of arrays representing the derivatives of the parameters of the cell
+            in an order consistent with that of the 'parameters' method.
+        """
+        raise NotImplementedError
+
+
+class RNNBasicCell(RNNAbstractCell):
     """A Basic RNN cell."""
-    #
-    # Forward pass, given X:
-    #   Z[t] = W X[t] + U H[t - 1] + b
-    #   H[t] = a(Z[t])
-    #   H[t] -> L[t]
-    #   loss = sum(L[t])
-    #
-    # Backward pass, given DL[t] = dL[t] / dH[t]:
-    #   DH[t] = DL[t] + U^T DZ[t + 1]
-    #   DZ[t] = DH[t] * a'(Z[t])
-    #
     def __init__(self, input_size, hidden_size):
         """Initialize the cell.
 
@@ -189,20 +272,9 @@ class RNNBasicCell:
         self.H = np.empty((0, 0, hidden_size))
 
     def forward(self, X, Hinit):
-        """Forward step: return the hidden state at each time step.
-
-        Parameters
-        ----------
-        X : ndarray, shape (m, t, n)
-            sequence of input features (m sequences, t time steps, n components).
-        Hinit : ndarray, shape (m, h)
-            intial state (one vector for each input sequence).
-
-        Returns
-        -------
-        H : ndarray, shape (m, t, h)
-            sequence of hidden states (m sequences, t time steps, h units).
-        """
+        # Given X:
+        #   Z[t] = W X[t] + U H[t - 1] + b
+        #   H[t] = a(Z[t])
         _check_size("mtn, mh, nh", X, Hinit, self.W)
         m, t, n = X.shape
         X1 = X @ self.W + self.b
@@ -218,18 +290,9 @@ class RNNBasicCell:
         return H
 
     def backward(self, DL):
-        """Backward step: return derivatives computed for all time steps.
-
-        Parameters
-        ----------
-        DL : ndarray, shape (m, t, h)
-            derivative of the losses at each time steps with respect to the corresponding states.
-
-        Returns
-        -------
-        DX : ndarray, shape (m, t, n)
-            derivative of the losses at each time steps with respect to the inputs.
-        """
+        # Given DL[t] = dLoss[t] / dH[t]:
+        #   DH[t] = DL[t] + U^T DZ[t + 1]
+        #   DZ[t] = DH[t] * a'(Z[t])
         _check_size("mth, mth", DL, self.H)
         t = DL.shape[1]
         DH = DL.copy()
@@ -253,11 +316,12 @@ class RNNBasicCell:
         return (A > 0).astype(float)
 
     def parameters(self):
-        """List of parameters of the cell."""
         return (self.W, self.U, self.b)
 
     def parameters_grad(self):
-        """Derivative of the total loss with respect to the parameters of the cell."""
+        # dTotalLoss / dW = sum( DZ[t] X[t]^T )
+        # dTotalLoss / dU = sum( DZ[t] H[t - 1]^T )
+        # dTotalLoss / db = sum( DZ[t] )
         n, h = self.W.shape
         DW = self.X.reshape(-1, n).T @ self.DZ.reshape(-1, h)
         DU = self.H[:, :-1, :].reshape(-1, h).T @ self.DZ[:, 1:, :].reshape(-1, h)
@@ -265,19 +329,8 @@ class RNNBasicCell:
         return (DW, DU, Db)
 
 
-class GRUCell:
+class GRUCell(RNNAbstractCell):
     """Gated Recurring Unit cell."""
-    #
-    # Forward pass, given X:
-    #   Sz[t] = Wz X[t] + Uz H[t - 1] + bz
-    #   Z[t] = sigmoid(Sz[t])
-    #   Sr[t] = Wr X[t] + Ur H[t - 1] + br
-    #   R[t] = sigmoid(Sr[t])
-    #   Sh[t] = Wh X[t] + Uh (R[t] * H[t - 1]) + bh
-    #   H[t] = (1 - Z[t]) * H[t - 1] + Z[t] * a(Sh[t])
-    #   H[t] -> L[t]
-    #   loss = sum(L[t])
-    #
     def __init__(self, input_size, hidden_size):
         """Initialize the cell.
 
@@ -309,20 +362,13 @@ class GRUCell:
         self.H = np.empty((0, 0, hidden_size))
 
     def forward(self, X, Hinit):
-        """Forward step: return the hidden state at each time step.
-
-        Parameters
-        ----------
-        X : ndarray, shape (m, t, n)
-            sequence of input features (m sequences, t time steps, n components).
-        Hinit : ndarray, shape (m, h)
-            intial state (one vector for each input sequence).
-
-        Returns
-        -------
-        H : ndarray, shape (m, t, h)
-            sequence of hidden states (m sequences, t time steps, h units).
-        """
+        #   Sz[t] = Wz X[t] + Uz H[t - 1] + bz
+        #   Z[t] = sigmoid(Sz[t])
+        #   Sr[t] = Wr X[t] + Ur H[t - 1] + br
+        #   R[t] = sigmoid(Sr[t])
+        #   Sh[t] = Wh X[t] + Uh (R[t] * H[t - 1]) + bh
+        #   H'[t] = a(Sh[t])
+        #   H[t] = (1 - Z[t]) * H[t - 1] + Z[t] * H'[t]
         _check_size("mtn, mh, nh", X, Hinit, self.Wz)
         m, t, n = X.shape
         Xz = X @ self.Wz + self.bz
@@ -356,23 +402,20 @@ class GRUCell:
         return H
 
     def backward(self, DL):
-        """Backward step: return derivatives computed for all time steps.
-
-        Parameters
-        ----------
-        DL : ndarray, shape (m, t, h)
-            derivative of the losses at each time steps with respect to the corresponding states.
-
-        Returns
-        -------
-        DX : ndarray, shape (m, t, n)
-            derivative of the losses at each time steps with respect to the inputs.
-        """
-
+        # Given DL[t] = dLoss[t] / dH[t]:
+        #   DH[t] = DL[t] + Uz^T DSz[t + 1] + (Ur^T DSr[t + 1]) * R[t + 1]
+        #         + Uh^T DSz[t + 1] + DH[t + 1] * (1 - Z[t + 1])
+        #
+        #   DH'[t] = DH[t] * Z[t]
+        #   DSh[t] = DH'[t] * a'(H[t])
+        #   DZ[t] = DH[t] * (H'[t] - H[t - 1])
+        #   DSz[t] = DZ[t] * Z[t] * (1 - Z[t])
+        #   DR[t] = (Uh^T DSh[t]) H[t - 1]
+        #   DSr[t] = DR[t] * R[t] * (1 - R[t])
+        #
+        #   DX[t] = Wz^T DSz + Wr^T DSr + Wh^T DSh
         _check_size("mth, mth", self.H, DL)
         m, t, h = self.H.shape
-
-        # Backward loop
         DH = DL.copy()
         DX = np.empty_like(self.X)
         DHnew = np.empty_like(self.H)
@@ -422,6 +465,15 @@ class GRUCell:
 
     def parameters_grad(self):
         """Derivative of the total loss with respect to the parameters of the cell."""
+        # dTotalLoss / dWz = sum( DSz[t] X[t]^T )
+        # dTotalLoss / dUz = sum( DSz[t] H[t - 1]^T )
+        # dTotalLoss / dbz = sum( DSz[t] )
+        # dTotalLoss / dWr = sum( DSr[t] X[t]^T )
+        # dTotalLoss / dUr = sum( DSr[t] (R[t] * H[t - 1])^T )
+        # dTotalLoss / dbr = sum( DSr[t] )
+        # dTotalLoss / dWh = sum( DSh[t] X[t]^T )
+        # dTotalLoss / dUh = sum( DSh[t] H[t - 1]^T )
+        # dTotalLoss / dbh = sum( DSh[t] )
         n, h = self.Wz.shape
         Hold = np.concatenate((self.Hinit[:, None, :], self.H[:, :-1, :]), 1)
         Hold = Hold.reshape(-1, h)
@@ -435,3 +487,7 @@ class GRUCell:
         Dbr = self.DSr.sum(1).sum(0)
         Dbh = self.DSh.sum(1).sum(0)
         return (DWz, DUz, Dbz, DWr, DUr, Dbr, DWh, DUh, Dbh)
+
+
+# Factory used to select the cell type from the RNN constructor
+_CELL_TYPES = {"basic": RNNBasicCell, "gru": GRUCell}
