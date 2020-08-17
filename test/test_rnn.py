@@ -102,5 +102,116 @@ class TestRNN(unittest.TestCase):
         self.assertListEqual(list(rnn.b), list(rnn2.b))
 
 
+class TestGRUCell(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        np.random.seed(7477)
+
+    def test_forward(self):
+        n, h, m, t = 5, 3, 2, 4
+        init = np.zeros((m, h))
+        cell = pvml.GRUCell(n, h)
+        X = np.random.randn(m, t, n)
+        H = cell.forward(X, np.zeros((m, h)))
+        self.assertEqual(H.shape, (m, t, h))
+
+    def test_gradientX(self):
+        n, h, m, t = 2, 2, 2, 3
+        init = np.zeros((m, h))
+        cell = pvml.GRUCell(n, h)
+        X = np.random.randn(m, t, n)
+        H = cell.forward(X, init)
+        DL = np.ones_like(H)
+        DZ, DX = cell.backward(X, H, DL, init, init)
+        L0 = H.sum()
+        eps = 1e-7
+        for index in np.ndindex(*X.shape):
+            backup = X[index]
+            X[index] += eps
+            with self.subTest(index=index):
+                H1 = cell.forward(X, init)
+                L1 = H1.sum()
+                D = (L1 - L0) / eps
+                self.assertAlmostEqual(DX[index], D, 5)
+            X[index] = backup
+
+    @unittest.skip("temp")
+    def test_temp(self):
+        n, h, m, t = 1, 2, 1, 3
+        init = np.zeros((m, h))
+        cell = pvml.GRUCell(n, h)
+        # cell.bz[...] = 0
+        # cell.br[...] = 0
+        # cell.bh[...] = 0
+        # cell.Wz[...] = 1
+        # cell.Wr[...] = 2
+        # cell.Wh[...] = 1
+        # cell.Uz[...] = 0.5
+        # cell.Ur[...] = 0.5
+        # cell.Uh[...] = 0.5
+        init[...] = 0
+        X = np.random.randn(m, t, n)
+        X[...] = 1
+
+        pvml.rnn._eps = 0        
+        H = cell.forward(X, init)
+        DL = np.ones_like(H)
+        DZ, DX = cell.backward(X, H, DL, init, init)
+        L0 = H.sum()
+
+        pvml.rnn._eps = 1e-7
+        H1 = cell.forward(X, init)
+        L1 = H1.sum()
+
+        D = (L1 - L0) / pvml.rnn._eps
+        print("D =", D)
+            
+    @unittest.skip("temp")
+    def test_gradientX2(self):
+        print("=======================================================")
+        n, h, m, t = 1, 1, 1, 3
+        hinit = np.zeros((m, h))
+        dinit = np.zeros((m, h))
+        cell = pvml.GRUCell(n, h)
+        cell.Uh = np.eye(h) # !!!
+        X = np.random.randn(m, t, n)
+        pvml.rnn._eps = 0
+        H = cell.forward(X, hinit)
+        L0 = H.sum()
+        DL = np.ones_like(H)
+        DZ, DX = cell.backward(X, H, DL, dinit, hinit)
+        pvml.rnn._eps = 1e-7
+        H = cell.forward(X, hinit)
+        L1 = H.sum()
+        D = (L1 - L0) / pvml.rnn._eps
+        print(D)
+
+    @unittest.skip("TODO")
+    def test_gradientW(self):
+        """Test the gradient of the loss wrt the parameters.
+
+        The loss here is just the sum of all the cell states.
+        """
+        n, h, m, t = 3, 2, 4, 5
+        init = np.zeros((m, h))
+        cell = pvml.RNNBasicCell(n, h)
+        X = np.random.randn(m, t, n)
+        H = cell.forward(X, np.zeros((m, h)))
+        L = H.sum()
+        DZ = cell.backward(H, np.ones_like(H), init)[0]
+        gradients = cell.parameters_grad(X, H, DZ, init)
+        eps = 1e-7
+        for p in range(3):
+            for index in np.ndindex(*gradients[p].shape):
+                backup = cell.parameters()[p][index]
+                with self.subTest(parameter=p, index=index):
+                    cell.parameters()[p][index] += eps
+                    H1 = cell.forward(X, init)
+                    L1 = H1.sum()
+                    D = (L1 - L) / eps
+                    self.assertAlmostEqual(gradients[p][index], D, 5)
+                cell.parameters()[p][index] = backup
+
+
 if __name__ == '__main__':
     unittest.main()

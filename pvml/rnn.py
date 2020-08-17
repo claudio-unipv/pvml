@@ -267,6 +267,7 @@ class RNNBasicCell:
         DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
         return (DW, DV, Db)
 
+
 class GRUCell:
     """Gated Recurring Unit cell."""
     #
@@ -279,10 +280,6 @@ class GRUCell:
     #   H[t] = (1 - Z[t]) * H[t - 1] + Z[t] * a(Sh[t])
     #   H[t] -> L[t]
     #   loss = sum(L[t])
-    #
-    # Backward pass, given DL[t] = dL[t] / dH[t]:
-    #   !!! DH[t] = DL[t] + U^T DZ[t + 1]
-    #   !!! DZ[t] = DH[t] * a'(Z[t])
     #
     def __init__(self, input_size, hidden_size):
         """Initialize the cell.
@@ -363,6 +360,8 @@ class GRUCell:
 
         _check_size("mtn, mth, mth, mh, mh", X, H, DL, Dinit, Hinit)
         m, t, n = H.shape
+        # Since intermediate values were not stored we have to
+        # replicate part of the forward step
         Hold = np.concatenate((Hinit[:, None, :], H[:, :-1, :]), 1)
         Sz = X @ self.Wz + Hold @ self.Uz + self.bz
         Z = sigmoid(Sz)
@@ -370,23 +369,29 @@ class GRUCell:
         R = sigmoid(Sr)
         Sh = X @ self.Wh + (Hold * R) @ self.Uh + self.bh
         Hnew = self.forward_activation(Sh)
-        DHnew = DL * Z
-        DZ = DL * (Hnew - Hold)
-        DSz = DZ * Z * (1 - Z)
-        backact = self.backward_activation(Hnew)
-        DSh = DL * Z * backact
-        DR = ((DSh * Hold) @ self.Uh.T)
-        breakpoint()
-        DSr = DR * R * (1 - R)
-        DH = np.empty_like(H)
-        DH[:, -1, :] = Dinit * (1 - Z[:, -1, :])
-        for i in range(t - 2, -1, -1):
-            DH[:, i, :] = DH[:, i + 1, :] * (1 - Z[:, i, :])
-            DH[:, i, :] += DSz[:, i + 1, :] @ self.Uz.T
-            DH[:, i, :] += DSr[:, i + 1, :] @ self.Ur.T 
-            DH[:, i, :] += (Hold[:, i, :] * Z[:, i, :] * backact[:, i, :]) @ self.Uh.T
-        DX = DSz @ self.Wz.T + DSr @ self.Wr.T + DSh @ self.Wh.T
-        return DZ, DX
+
+        # Backward loop
+        DH = DL.copy()
+        DX = np.empty_like(X)
+        for i in range(t - 1, -1, -1):
+            # Compute DH
+            if i == t - 1:
+                DH[:, i, :] += Dinit
+            else:
+                DH[:, i, :] += DSz @ self.Uz.T
+                DH[:, i, :] += DSr @ self.Ur.T
+                DH[:, i, :] += (DSh  @ self.Uh.T) * R[:, i + 1, :]
+                DH[:, i, :] += (1 - Z[:, i + 1, :]) * DH[:, i + 1, :]
+            # Update the deratives of gates and logits
+            DHnew = DH[:, i, :] * Z[:, i, :]
+            DSh = DHnew * self.backward_activation(Hnew[:, i, :])
+            DZ = DH[:, i, :] * (Hnew[:, i, :] - Hold[:, i, :])
+            DSz = DZ * Z[:, i, :] * (1 - Z[:, i, :])
+            DR = (DSh  @ self.Uh.T) * Hold[:, i, :]
+            DSr = DR * R[:, i, :] * (1 - R[:, i, :])
+            # Compute DX
+            DX[:, i, :] = DSz @ self.Wz.T + DSr @ self.Wr.T + DSh @ self.Wh.T
+        return DH, DX
 
     def forward_activation(self, X):
         """Activation function."""
