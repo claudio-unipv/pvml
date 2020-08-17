@@ -29,26 +29,24 @@ class RNN:
 
     def forward(self, X, inits=None):
         m = X.shape[0]
-        Hs = [X]
         if inits is None:
             inits = [np.zeros((m, h)) for h in self.neuron_counts[1:-1]]
+        H = X
         for cell, init in zip(self.cells, inits):
-            X = cell.forward(X, init)
-            Hs.append(X)
-        V = X @ self.W + self.b
+            H = cell.forward(H, init)
+        V = H @ self.W + self.b
         P = self.activation(V)
-        return Hs, P
+        self.H = H
+        self.P = P
+        return P
 
-    def backward(self, Hs, P, Y, inits=None):
-        DV = self.activation_backward(P, Y)
-        DH = DV @ self.W.T
-        DZs = []
-        if inits is None:
-            inits = [np.zeros((P.shape[0], h)) for h in self.neuron_counts[1:-1]]
-        for H, cell, init in zip(Hs[::-1], self.cells[::-1], inits[::-1]):
-            DZ, DH = cell.backward(H, DH, init)
-            DZs.append(DZ)
-        return DZs[::-1], DH, DV
+    def backward(self, Y):
+        DV = self.activation_backward(self.P, Y)
+        D = DV @ self.W.T
+        for cell in self.cells[::-1]:
+            D = cell.backward(D)
+        self.DV = DV
+        return D
 
     def train(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99,
               steps=10000, batch=None):
@@ -93,19 +91,13 @@ class RNN:
             i += batch
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
-        Hs, P = self.forward(X)
-        DZs, DX, DV = self.backward(Hs, P, Y)
+        P = self.forward(X)
+        D = self.backward(Y)
         h, k = self.W.shape
-        grad_W = Hs[-1].reshape(-1, h).T @ DV.reshape(-1, k) + lambda_ * self.W
-        grad_b = DV.sum((0, 1))
-
-        grads = []
-        for cell, H, DZ, h in zip(self.cells, Hs[1:], DZs, self.neuron_counts[1:]):
-            init = np.zeros((X.shape[0], h))
-            g = cell.parameters_grad(X, H, DZ, init)
-            X = H
-            grads.append(g)
-
+        grad_W = self.H.reshape(-1, h).T @ self.DV.reshape(-1, k) + lambda_ * self.W
+        grad_b = self.DV.sum((0, 1))
+        grads = [cell.parameters_grad() for cell in self.cells]
+        
         self.up_W *= momentum
         self.up_W -= lr * grad_W
         self.W += self.up_W
@@ -185,10 +177,15 @@ class RNNBasicCell:
         hidden_size : int
             number of hidden neurons.
         """
+        # Parameters
         self.W = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
         self.U = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
         self.b = np.zeros(hidden_size)
-
+        # State
+        self.X = np.empty((0, 0, input_size))
+        self.Z = np.empty((0, 0, hidden_size))
+        self.H = np.empty((0, 0, hidden_size))
+        
     def forward(self, X, Hinit):
         """Forward step: return the hidden state at each time step.
 
@@ -206,45 +203,44 @@ class RNNBasicCell:
         """
         _check_size("mtn, mh, nh", X, Hinit, self.W)
         m, t, n = X.shape
-        # X1 = (X.reshape(-1, n) @ self.W).reshape(m, t, -1) + self.b
         X1 = X @ self.W + self.b
         H = np.empty_like(X1)
+        Z = np.empty_like(X1)
         for i in range(0, t):
-            Z = X1[:, i, :] + Hinit @ self.U
-            H[:, i, :] = self.forward_activation(Z)
+            Z[:, i, :] = X1[:, i, :] + Hinit @ self.U
+            H[:, i, :] = self.forward_activation(Z[:, i, :])
             Hinit = H[:, i, :]
+        self.X = X
+        self.H = H
+        self.Z = Z
         return H
 
-    def backward(self, H, DL, DZinit):
+    def backward(self, DL):
         """Backward step: return derivatives computed for all time steps.
 
         Parameters
         ----------
-        H : ndarray, shape (m, t, h)
-            sequence of states obtained in the forward step.
         DL : ndarray, shape (m, t, h)
             derivative of the losses at each time steps with respect to the corresponding states.
-        DZinit : ndarray, shape (m, h)
-            derivative of the total loss with respect to the last logits obtained in the forward
-            step.
 
         Returns
         -------
-        DZ : ndarray, shape (m, t, h)
-            derivative of the losses at each time steps with respect to the logits.
         DX : ndarray, shape (m, t, n)
             derivative of the losses at each time steps with respect to the inputs.
         """
-
-        _check_size("mth, mth, mh", H, DL, DZinit)
-        m, t, n = H.shape
-        DZ = np.empty_like(H)
+        _check_size("mth, mth", DL, self.H)
+        t = DL.shape[1]
+        DH = DL.copy()
+        DZ = np.empty_like(DL)
         for i in range(t - 1, -1, -1):
-            DH = DL[:, i, :] + DZinit @ self.U.T
-            DZinit = self.backward_activation(H[:, i, :]) * DH
-            DZ[:, i, :] = DZinit
+            if i < t - 1:
+                DH[:, i, :] += DZ[:, i + 1, :] @ self.U.T
+            DZ[:, i, :] = DH[:, i, :] * self.backward_activation(self.H[:, i, :])
         DX = DZ @ self.W.T
-        return DZ, DX
+        self.DH = DH
+        self.DZ = DZ
+        self.DX = DX
+        return DX
 
     def forward_activation(self, X):
         """Activation function."""
@@ -258,14 +254,13 @@ class RNNBasicCell:
         """List of parameters of the cell."""
         return (self.W, self.U, self.b)
 
-    def parameters_grad(self, X, H, DZ, DZinit):
+    def parameters_grad(self):
         """Derivative of the total loss with respect to the parameters of the cell."""
         n, h = self.W.shape
-        DV = H[:, :-1, :].reshape(-1, h).T @ DZ[:, 1:, :].reshape(-1, h)
-        DV += H[:, -1, :].T @ DZinit
-        Db = DZ.sum((0, 1))
-        DW = X.reshape(-1, n).T @ DZ.reshape(-1, h)
-        return (DW, DV, Db)
+        DW = self.X.reshape(-1, n).T @ self.DZ.reshape(-1, h)
+        DU = self.H[:, :-1, :].reshape(-1, h).T @ self.DZ[:, 1:, :].reshape(-1, h)
+        Db = self.DZ.sum(1).sum(0)
+        return (DW, DU, Db)
 
 
 class GRUCell:

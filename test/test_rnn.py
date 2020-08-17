@@ -20,8 +20,8 @@ class TestRNNBaseCell(unittest.TestCase):
         X = np.random.randn(m, t, n)
         H = cell.forward(X, np.zeros((m, h)))
         L = H.sum()
-        DZ = cell.backward(H, np.ones_like(H), init)[0]
-        gradients = cell.parameters_grad(X, H, DZ, init)
+        DX = cell.backward(np.ones_like(H))
+        gradients = cell.parameters_grad()
         eps = 1e-7
         for p in range(3):
             for index in np.ndindex(*gradients[p].shape):
@@ -46,15 +46,15 @@ class TestRNN(unittest.TestCase):
         rnn = pvml.RNN(neurons)
         X = np.random.randn(m, t, neurons[0])
         Y = np.arange(m) % neurons[-1]
-        Hs, P = rnn.forward(X)
+        P = rnn.forward(X)
         L = rnn.loss(Y, P)
-        DZs, DX, DV = rnn.backward(Hs, P, Y)
+        DX = rnn.backward(Y)
         eps = 1e-7
         for index in np.ndindex(*X.shape):
             backup = X[index]
             with self.subTest(index=index):
                 X[index] += eps
-                P1 = rnn.forward(X)[1]
+                P1 = rnn.forward(X)
                 L1 = rnn.loss(Y, P1)
                 D = (L1 - L) / eps
                 self.assertAlmostEqual(DX[index], D, 5)
@@ -66,15 +66,15 @@ class TestRNN(unittest.TestCase):
         rnn = pvml.RNN(neurons)
         X = np.random.randn(m, t, neurons[0])
         Y = np.arange(m * t).reshape(m, t) % neurons[-1]
-        Hs, P = rnn.forward(X)
+        P = rnn.forward(X)
         L = rnn.loss(Y, P)
-        DZs, DX, DV = rnn.backward(Hs, P, Y)
+        DX = rnn.backward(Y)
         eps = 1e-7
         for index in np.ndindex(*X.shape):
             backup = X[index]
             with self.subTest(index=index):
                 X[index] += eps
-                P1 = rnn.forward(X)[1]
+                P1 = rnn.forward(X)
                 L1 = rnn.loss(Y, P1)
                 D = (L1 - L) / eps
                 self.assertAlmostEqual(DX[index], D, 5)
@@ -88,7 +88,7 @@ class TestRNN(unittest.TestCase):
         X = np.eye(k).reshape(1, k, k)
         rnn = pvml.RNN(neurons)
         rnn.train(X, Y, lr=0.01, steps=100)
-        P = rnn.forward(X)[1]
+        P = rnn.forward(X)
         Z = P[0, :, :].argmax(-1)
         self.assertListEqual(list(Z), list(Y[0, :]))
 
