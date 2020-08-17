@@ -116,13 +116,13 @@ class TestGRUCell(unittest.TestCase):
         self.assertEqual(H.shape, (m, t, h))
 
     def test_gradientX(self):
-        n, h, m, t = 2, 2, 2, 3
+        n, h, m, t = 1, 1, 1, 2  #2, 2, 2, 3
         init = np.zeros((m, h))
         cell = pvml.GRUCell(n, h)
         X = np.random.randn(m, t, n)
         H = cell.forward(X, init)
         DL = np.ones_like(H)
-        DZ, DX = cell.backward(X, H, DL, init, init)
+        DX = cell.backward(DL)
         L0 = H.sum()
         eps = 1e-7
         for index in np.ndindex(*X.shape):
@@ -137,9 +137,11 @@ class TestGRUCell(unittest.TestCase):
 
     @unittest.skip("temp")
     def test_temp(self):
-        n, h, m, t = 1, 2, 1, 3
+        n, h, m, t = 1, 1, 1, 3  #2, 2, 2, 3
         init = np.zeros((m, h))
         cell = pvml.GRUCell(n, h)
+        X = np.random.randn(m, t, n)
+
         # cell.bz[...] = 0
         # cell.br[...] = 0
         # cell.bh[...] = 0
@@ -149,15 +151,14 @@ class TestGRUCell(unittest.TestCase):
         # cell.Uz[...] = 0.5
         # cell.Ur[...] = 0.5
         # cell.Uh[...] = 0.5
-        init[...] = 0
-        X = np.random.randn(m, t, n)
-        X[...] = 1
-
-        pvml.rnn._eps = 0        
+        # init[...] = 0
+        # X[...] = 1
+        
         H = cell.forward(X, init)
         DL = np.ones_like(H)
-        DZ, DX = cell.backward(X, H, DL, init, init)
+        DX = cell.backward(DL)
         L0 = H.sum()
+        eps = 1e-7
 
         pvml.rnn._eps = 1e-7
         H1 = cell.forward(X, init)

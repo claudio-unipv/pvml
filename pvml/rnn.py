@@ -286,6 +286,7 @@ class GRUCell:
         hidden_size : int
             number of hidden neurons.
         """
+        # Parameters
         self.Wz = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
         self.Uz = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
         self.bz = np.zeros(hidden_size)
@@ -295,6 +296,15 @@ class GRUCell:
         self.Wh = np.random.randn(input_size, hidden_size) * np.sqrt(2 / input_size)
         self.Uh = np.random.randn(hidden_size, hidden_size) * np.sqrt(2 / hidden_size)
         self.bh = np.zeros(hidden_size)
+        # Cell state variables
+        self.X = np.empty((0, 0, input_size))
+        self.R = np.empty((0, 0, hidden_size))
+        self.Sr = np.empty((0, 0, hidden_size))
+        self.Z = np.empty((0, 0, hidden_size))
+        self.Sz = np.empty((0, 0, hidden_size))
+        self.Hnew = np.empty((0, 0, hidden_size))
+        self.Sh = np.empty((0, 0, hidden_size))
+        self.H = np.empty((0, 0, hidden_size))
 
     def forward(self, X, Hinit):
         """Forward step: return the hidden state at each time step.
@@ -317,76 +327,84 @@ class GRUCell:
         Xr = X @ self.Wr + self.br
         Xh = X @ self.Wh + self.bh
         H = np.empty_like(Xz)
+        R = np.empty_like(H)
+        Sr = np.empty_like(H)
+        Z = np.empty_like(H)
+        Sz = np.empty_like(H)
+        Hnew = np.empty_like(H)
+        Sh = np.empty_like(H)
+        self.Hinit = Hinit.copy()
         for i in range(0, t):
-            Sz = Xz[:, i, :] + Hinit @ self.Uz
-            Z = sigmoid(Sz)
-            Sr = Xr[:, i, :] + Hinit @ self.Ur
-            R = sigmoid(Sr)
-            Sh = Xh[:, i, :] + (R * Hinit) @ self.Uh
-            Hnew = self.forward_activation(Sh)
-            Hinit = (1 - Z) * Hinit + Z * Hnew
+            Sz[:, i, :] = Xz[:, i, :] + Hinit @ self.Uz
+            Z[:, i, :] = sigmoid(Sz[:, i, :])
+            Sr[:, i, :] = Xr[:, i, :] + Hinit @ self.Ur
+            R[:, i, :] = sigmoid(Sr[:, i, :])
+            Sh[:, i, :] = Xh[:, i, :] + (R[:, i, :] * Hinit) @ self.Uh
+            Hnew[:, i, :] = self.forward_activation(Sh[:, i, :])
+            Hinit = (1 - Z[:, i, :]) * Hinit + Z[:, i, :] * Hnew[:, i, :]
             H[:, i, :] = Hinit
+        self.X = X.copy()
+        self.R = R
+        self.Sr = Sr
+        self.Z = Z
+        self.Sz = Sz
+        self.Hnew = Hnew
+        self.Sh = Sh
+        self.H = H
         return H
 
-    def backward(self, X, H, DL, Dinit, Hinit):
+    def backward(self, DL):
         """Backward step: return derivatives computed for all time steps.
 
         Parameters
         ----------
-        X : ndarray, shape (m, t, n)
-            sequence of input features (m sequences, t time steps, n components).
-        H : ndarray, shape (m, t, h)
-            sequence of states obtained in the forward step.
         DL : ndarray, shape (m, t, h)
             derivative of the losses at each time steps with respect to the corresponding states.
-        Dinit : ndarray, shape (m, h)
-            derivative of the total loss with respect to the last logits obtained in the forward
-            step.
-        Hinit : ndarray, shape (m, h)
-            intial state (one vector for each input sequence).
 
         Returns
         -------
-        DZ : ndarray, shape (m, t, h)
-            derivative of the losses at each time steps with respect to the logits.
         DX : ndarray, shape (m, t, n)
             derivative of the losses at each time steps with respect to the inputs.
         """
 
-        _check_size("mtn, mth, mth, mh, mh", X, H, DL, Dinit, Hinit)
-        m, t, n = H.shape
-        # Since intermediate values were not stored we have to
-        # replicate part of the forward step
-        Hold = np.concatenate((Hinit[:, None, :], H[:, :-1, :]), 1)
-        Sz = X @ self.Wz + Hold @ self.Uz + self.bz
-        Z = sigmoid(Sz)
-        Sr = X @ self.Wr + Hold @ self.Ur + self.br
-        R = sigmoid(Sr)
-        Sh = X @ self.Wh + (Hold * R) @ self.Uh + self.bh
-        Hnew = self.forward_activation(Sh)
+        _check_size("mth, mth", self.H, DL)
+        m, t, h = self.H.shape
 
         # Backward loop
         DH = DL.copy()
-        DX = np.empty_like(X)
+        DX = np.empty_like(self.X)
+        DHnew = np.empty_like(self.H)
+        DSh = np.empty_like(self.H)
+        DZ = np.empty_like(self.H)
+        DSz = np.empty_like(self.H)
+        DR = np.empty_like(self.H)
+        DSr = np.empty_like(self.H)
         for i in range(t - 1, -1, -1):
             # Compute DH
-            if i == t - 1:
-                DH[:, i, :] += Dinit
-            else:
-                DH[:, i, :] += DSz @ self.Uz.T
-                DH[:, i, :] += DSr @ self.Ur.T
-                DH[:, i, :] += (DSh  @ self.Uh.T) * R[:, i + 1, :]
-                DH[:, i, :] += (1 - Z[:, i + 1, :]) * DH[:, i + 1, :]
+            if i < t - 1:
+                DH[:, i, :] += DSz[:, i + 1, :] @ self.Uz.T
+                DH[:, i, :] += DSr[:, i + 1, :] @ self.Ur.T
+                DH[:, i, :] += (DSh[:, i + 1, :]  @ self.Uh.T) * self.R[:, i + 1, :]
+                DH[:, i, :] += (1 - self.Z[:, i + 1, :]) * DH[:, i + 1, :]
             # Update the deratives of gates and logits
-            DHnew = DH[:, i, :] * Z[:, i, :]
-            DSh = DHnew * self.backward_activation(Hnew[:, i, :])
-            DZ = DH[:, i, :] * (Hnew[:, i, :] - Hold[:, i, :])
-            DSz = DZ * Z[:, i, :] * (1 - Z[:, i, :])
-            DR = (DSh  @ self.Uh.T) * Hold[:, i, :]
-            DSr = DR * R[:, i, :] * (1 - R[:, i, :])
-            # Compute DX
-            DX[:, i, :] = DSz @ self.Wz.T + DSr @ self.Wr.T + DSh @ self.Wh.T
-        return DH, DX
+            DHnew[:, i, :] = DH[:, i, :] * self.Z[:, i, :]
+            DSh[:, i, :] = DHnew[:, i, :] * self.backward_activation(self.Hnew[:, i, :])
+            Hold = (self.Hinit if i == 0 else self.H[:, i - 1, :])
+            DZ[:, i, :] = DH[:, i, :] * (self.Hnew[:, i, :] - Hold)
+            DSz[:, i, :] = DZ[:, i, :] * self.Z[:, i, :] * (1 - self.Z[:, i, :])
+            DR[:, i, :] = (DSh[:, i, :]  @ self.Uh.T) * Hold
+            DSr[:, i, :] = DR[:, i, :] * self.R[:, i, :] * (1 - self.R[:, i, :])
+        # Compute DX
+        DX = DSz @ self.Wz.T + DSr @ self.Wr.T + DSh @ self.Wh.T
+        self.DH = DH
+        self.DX = DX
+        self.DHnew = DHnew
+        self.DSh = DSh
+        self.DZ = DZ
+        self.DSz = DSz
+        self.DR = DR
+        self.DSr = DSr
+        return DX
 
     def forward_activation(self, X):
         """Activation function."""
