@@ -22,7 +22,7 @@ def logreg_inference(X, w, b):
     """
     _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
-    return 1 / (1 + np.exp(-logits))
+    return sigmoid(logits)
 
 
 def binary_cross_entropy(Y, P):
@@ -168,3 +168,19 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
         w -= lr * grad_w
         b -= lr * grad_b
     return w, b
+
+
+def sigmoid(z):
+    """Elementwise sigmoid.
+
+    Parameters
+    ----------
+    z : ndarray
+         input
+
+    Returns
+    -------
+    ndarray, (same shape of z)
+        the sigmoid of z
+    """
+    return 1 / (1 + np.exp(-z))
