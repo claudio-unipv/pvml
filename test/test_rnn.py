@@ -161,5 +161,32 @@ class TestGRUCell(unittest.TestCase):
                 cell.parameters()[p][index] = backup
 
 
+class TestRNNAbstractCell(unittest.TestCase):
+    def test_forward(self):
+        n, h, m, t = 3, 2, 4, 5
+        init = np.zeros((m, h))
+        cell = pvml.RNNAbstractCell()
+        X = np.zeros((m, t, n))
+        with self.assertRaises(NotImplementedError):
+            cell.forward(X, init)
+
+    def test_backward(self):
+        n, m, t = 3, 4, 5
+        D = np.zeros((m, t, n))
+        cell = pvml.RNNAbstractCell()
+        with self.assertRaises(NotImplementedError):
+            cell.backward(D)
+
+    def test_parameters(self):
+        cell = pvml.RNNAbstractCell()
+        with self.assertRaises(NotImplementedError):
+            cell.parameters()
+
+    def test_parameters_grad(self):
+        cell = pvml.RNNAbstractCell()
+        with self.assertRaises(NotImplementedError):
+            cell.parameters_grad()
+
+
 if __name__ == '__main__':
     unittest.main()
