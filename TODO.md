@@ -6,8 +6,6 @@ TODO
 - OneHotVector class (if needed by RNN)
 - MLP
   + try subclasses (e.g. autoencoder)
-  + refactor load/save to not use pickle
-  + reset_momentum method
 - CNN
   + padding
   + refactor to look more similar to MLP
@@ -21,8 +19,9 @@ TODO
 - Reinforcement learning
   + Better example with CNN or MLP (use Open AI gym?)
 - Unit test
-  + Mostly NN
-
+  + CNN
+  + pvmlnet
+  + dataset
 
 BUGS
 ====

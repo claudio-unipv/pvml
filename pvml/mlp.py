@@ -32,10 +32,13 @@ class MLP:
                         for m, n in zip(neuron_counts[:-1], neuron_counts[1:])]
         # Biases are zero-initialized.
         self.biases = [np.zeros(m) for m in neuron_counts[1:]]
-        # Accumulators for the momentum terms
+        self.reset_momentum()
+        
+    def reset_momentum(self):
+        """Create the accumulators for the momentum terms and fill them with zeros."""
         self.update_w = [np.zeros_like(w) for w in self.weights]
         self.update_b = [np.zeros_like(b) for b in self.biases]
-
+        
     def forward(self, X):
         """Compute the activations of the neurons.
 
@@ -53,7 +56,6 @@ class MLP:
         activations of the layers.  The first element of the list is
         the input X, followed by the activations of hidden layers and
         trminated by the activations in the output layer.
-
         """
         activations = [X]
         for W, b in zip(self.weights[:-1], self.biases[:-1]):
@@ -83,8 +85,7 @@ class MLP:
         d = self.backward_output_activation(Y, activations[-1])
         derivatives = [d]
         if len(self.weights) > 1:
-            d = self.backward_output_layer(self.weights[-1],
-                                           self.biases[-1], d)
+            d = self.backward_output_layer(self.weights[-1], self.biases[-1], d)
             d = self.backward_hidden_activation(activations[-2], d)
             derivatives.append(d)
         for W, b, X in zip(self.weights[-2:0:-1], self.biases[-2:0:-1],
@@ -93,6 +94,30 @@ class MLP:
             d = self.backward_hidden_activation(X, d)
             derivatives.append(d)
         return derivatives[::-1]
+
+    def parameters_gradient(self, activations, derivatives):
+        """Derivatives of the loss with respect to the parameters.
+
+        Parameters
+        ----------
+        activations : list
+            activations computed by the forward method.
+        derivatives : list
+            derivatives computed by the backward method.
+
+        Returns
+        -------
+        gradient_weights : list
+            list of derivatives with respect to weights.
+        graident_biases : list
+            list of derivatives with respect to biases.
+        """
+        gradient_weights = []
+        gradient_biases = []
+        for X, D in zip(activations, derivatives):
+            gradient_weights.append(X.T @ D)
+            gradient_biases.append(D.sum(0))
+        return gradient_weights, gradient_biases
 
     def backpropagation(self, X, Y, lr=1e-4, lambda_=1e-5, momentum=0.99):
         """Backpropagation algorithm.
@@ -116,13 +141,12 @@ class MLP:
         """
         activations = self.forward(X)
         derivatives = self.backward(Y, activations)
-        for X, D, W, b, uw, ub in zip(activations, derivatives,
-                                      self.weights, self.biases,
-                                      self.update_w, self.update_b):
-            grad_W = (X.T @ D) + lambda_ * W
-            grad_b = D.sum(0)
+        grad_weights, grad_biases = self.parameters_gradient(activations, derivatives)
+        for W, b, uw, ub, grad_W, grad_b in zip(self.weights, self.biases,
+                                                self.update_w, self.update_b,
+                                                grad_weights, grad_biases):
             uw *= momentum
-            uw -= lr * grad_W
+            uw -= lr * (grad_W + lambda_ * W)
             W += uw
             ub *= momentum
             ub -= lr * grad_b
@@ -191,17 +215,20 @@ class MLP:
 
     def save(self, filename):
         """Save the network to the file."""
-        np.savez(filename, weights=self.weights, biases=self.biases)
+        neurons = [w.shape[0] for w in self.weights]
+        neurons.append(self.weights[-1].shape[1])
+        np.savez(filename, neurons=neurons, *self.weights, *self.biases)
 
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        data = np.load(filename, allow_pickle=True)
-        neurons = [w.shape[0] for w in data["weights"]]
-        neurons.append(data["weights"][-1].shape[1])
+        data = np.load(filename)
+        neurons = data["neurons"]
+        layers = len(neurons) - 1
         network = cls(neurons)
-        network.weights = data["weights"]
-        network.biases = data["biases"]
+        for i in range(layers):
+            network.weights[i][...] = data["arr_" + str(i)]
+            network.biases[i][...] = data["arr_" + str(i + layers)]
         return network
 
     # These last methods can be modified by derived classes to change
