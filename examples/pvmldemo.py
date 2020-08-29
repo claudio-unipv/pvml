@@ -364,6 +364,7 @@ class OvoKSVMModel(DemoModel):
         return pvml.one_vs_one_ksvm_inference(X, self.Xtrain, self.alpha, self.b,
                                               self.kfun, self.kparam)
 
+
 @_register_model("ovr_ksvm")
 class OvrKSVMModel(DemoModel):
     def __init__(self, args):

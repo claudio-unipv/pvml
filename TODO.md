@@ -5,8 +5,6 @@ TODO
   + better optimization algorithm?
 - OneHotVector class (if needed by RNN)
 - MLP
-  + refactor the class with activations as attributes (?)
-  + use attributes for activation instead of methods (?)
   + try subclasses (e.g. autoencoder)
   + refactor load/save to not use pickle
   + reset_momentum method
@@ -28,7 +26,7 @@ TODO
 
 BUGS
 ====
-- resize update_b and update_w for transfer learning in pvmlnet
+- resize update_b and update_w for transfer learning in pvmlnet (rename attributes?)
   + fix: refactor pvmlnet so that it is not a separate class but just
     an instance of CNN
   + fix pad mode in PVML (or update to numpy >= 1.17)

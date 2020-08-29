@@ -61,7 +61,7 @@ def main():
     std = Xtrain.std()
     Xtrain = (Xtrain - mean) / std
     Xtest = (Xtest - mean) / std
-    
+
     plt.ion()
     batch_sz = 100
     epochs = 75
