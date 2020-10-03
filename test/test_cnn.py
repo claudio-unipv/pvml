@@ -1,49 +1,130 @@
 import numpy as np
 import pvml
+import io
+import unittest
+import test_data
 
 
-def _check_gradient(cnn, eps=1e-6, imsz=25, bsz=2):
-    """Numerical check gradient computations."""
-    insz = cnn.weights[0].shape[2]
-    outsz = cnn.weights[-1].shape[3]
-    X = np.random.randn(bsz, imsz, imsz, insz)
-    Y = np.random.randint(0, outsz, (bsz,))
-    A = cnn.forward(X)
-    D = cnn.backward(Y, A)
-    L = cnn.loss(Y, A[-1])
-    for XX, W, DD, s in zip(A, cnn.weights, D, cnn.strides):
-        grad_W = pvml.cnn._convolution_derivative(XX, DD, W.shape[0],
-                                                  W.shape[1], s, s)
-        GW = np.empty_like(W)
-        for idx in np.ndindex(*W.shape):
-            bak = W[idx]
-            W[idx] += eps
-            A1 = cnn.forward(X)
-            L1 = cnn.loss(Y, A1[-1])
-            W[idx] = bak
-            GW[idx] = (L1 - L) / eps
-        err = np.abs(GW - grad_W).max()
-        print(err, "OK" if err < 1e-4 else "")
-        assert err < 1e-4
-    for b, DD in zip(cnn.biases, D):
-        grad_b = DD.sum(2).sum(1).sum(0)
-        Gb = np.empty_like(b)
-        for idx in np.ndindex(*b.shape):
-            bak = b[idx]
-            b[idx] += eps
-            A1 = cnn.forward(X)
-            L1 = cnn.loss(Y, A1[-1])
-            b[idx] = bak
-            Gb[idx] = (L1 - L) / eps
-        err = np.abs(Gb - grad_b).max()
-        print(err, "OK" if err < 1e-4 else "")
-        assert err < 1e-4
+class CNNTanh(pvml.CNN):
+    """CNN with hyperbolic tangent activation function.
+
+    It is used here because tanh is more reliable than ReLU for
+    numerical testing.
+    """
+    def forward_hidden_activation(self, X):
+        """Activation function of hidden layers."""
+        return np.tanh(X)
+
+    def backward_hidden_activation(self, Y, d):
+        """Derivative of the activation function of hidden layers."""
+        # y = tanh(x)  ==>  dy/dx = (1 - tanh(x)^2) = (1 - y^2)
+        return d * (1 - Y ** 2)
 
 
-if __name__ == "__main__":
-    cnn = pvml.CNN([4, 6], [2], [1])
-    _check_gradient(cnn)
-    # cnn = pvml.CNN([8, 7, 6], [1, 1], [1, 1])
-    # _check_gradient(cnn)
-    cnn = pvml.CNN([3, 8, 7, 5], [5, 4, 3], [2, 1, 1])
-    _check_gradient(cnn)
+class TestCNN(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        np.random.seed(7477)
+
+    def test_activation_gradient(self):
+        """Test the gradient of the activation function."""
+        cnn = CNNTanh([1, 1])
+        X = np.random.randn(10, 1)
+        Y = cnn.forward_hidden_activation(X)
+        eps = 1e-7
+        Y1 = cnn.forward_hidden_activation(X + eps)
+        D = cnn.backward_hidden_activation(Y, np.ones_like(Y))
+        D1 = (Y1 - Y) / eps
+        error = np.abs(D1 - D).max()
+        self.assertAlmostEqual(error, 0.0, 5)
+
+    def test_backward(self):
+        """Test the gradient of the loss wrt the input."""
+        m = 3
+        h, w = 7, 9
+        n = 8
+        k = 2
+        channels = [n, 4, k]
+        kernel_sz = [3, 3]
+        strides = [1, 2]
+
+        net = CNNTanh(channels, kernel_sz, strides)
+        X = np.random.randn(m, h, w, n)
+        Y = np.arange(m) % k
+        A = net.forward(X)
+        D = net.backward(Y, A)
+        grad = net.backward_to_input(D[0], X.shape[1], X.shape[2])
+        loss = net.loss(Y, A[-1])
+        eps = 1e-7
+        for index in np.ndindex(*X.shape):
+            backup = X[index]
+            X[index] += eps
+            with self.subTest(index=index):
+                A1 = net.forward(X)
+                loss1 = net.loss(Y, A1[-1])
+                ratio = (loss1 - loss) / eps
+                self.assertAlmostEqual(grad[index], ratio, 5)
+            X[index] = backup
+
+    def test_parameter_gradients(self):
+        """Test the gradient of the loss wrt the parameters."""
+        m = 2
+        h, w = 14, 18
+        n = 3
+        k = 5
+        channels = [n, 4, k]
+        kernel_sz = [5, 3, 1]
+        strides = [2, 2, 1]
+
+        net = CNNTanh(channels, kernel_sz, strides)
+        X = np.random.randn(m, h, w, n)
+        X = np.ones_like(X)  # !!!
+        Y = np.arange(m) % k
+        A = net.forward(X)
+        D = net.backward(Y, A)
+        loss = net.loss(Y, A[-1])
+        grad_Ws, grad_bs = net.parameters_gradient(A, D)
+        eps = 1e-7
+        for ps, grad_ps, name in ((net.weights, grad_Ws, "W"), (net.biases, grad_bs, "b")):
+            for p, grad_p, l in zip(ps, grad_ps, range(len(ps))):
+                for index in np.ndindex(*p.shape):
+                    backup = p[index]
+                    p[index] += eps
+                    with self.subTest(parameter=f"{name}[{l}]", index=index):
+                        A1 = net.forward(X)
+                        loss1 = net.loss(Y, A1[-1])
+                        ratio = (loss1 - loss) / eps
+                        self.assertAlmostEqual(grad_p[index], ratio, 5)
+                    p[index] = backup
+
+    def test_train(self):
+        X, Y = test_data.separable_hypercubes_data_set(50, 2)
+        net = pvml.CNN([X.shape[1], 2], [1])
+        X = X.reshape(X.shape[0], 1, 1, X.shape[1])
+        net.train(X, Y, lr=1e-1, steps=1000)
+        Yhat, P = net.inference(X)
+        self.assertListEqual(Y.tolist(), Yhat.tolist())
+
+    def test_batch(self):
+        X, Y = test_data.separable_circle_data_set(10, 2)
+        net = pvml.CNN([X.shape[1], 2, 2], [1, 1])
+        X = X.reshape(X.shape[0], 1, 1, X.shape[1])
+        net.train(X, Y, lr=1e-1, steps=1000, batch=10)
+        Yhat, P = net.inference(X)
+        self.assertListEqual(Y.tolist(), Yhat.tolist())
+
+    def test_saveload(self):
+        channels = [2, 3, 4, 5]
+        net1 = pvml.CNN(channels)
+        f = io.BytesIO()
+        net1.save(f)
+        f.seek(0)
+        net2 = pvml.CNN.load(f)
+        for w1, w2 in zip(net1.weights, net2.weights):
+            self.assertListEqual(list(w1.ravel()), list(w2.ravel()))
+        for b1, b2 in zip(net1.biases, net2.biases):
+            self.assertListEqual(list(b1), list(b2))
+
+
+if __name__ == '__main__':
+    unittest.main()

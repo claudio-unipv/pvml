@@ -18,7 +18,6 @@ class CNN:
     height (3) width (4) channels.
 
     """
-
     def __init__(self, channels=None, kernel_sz=None, strides=None):
         """Create and initialiaze the CNN.
 
@@ -82,7 +81,7 @@ class CNN:
         for W, b, s in zip(self.weights, self.biases, self.strides):
             X = _convolution(X, W, s, s) + b
             if W is not self.weights[-1]:
-                X = relu(X)
+                X = self.forward_hidden_activation(X)
             else:
                 activations.append(X)
                 X = X.mean(1).mean(1)
@@ -115,9 +114,34 @@ class CNN:
         for W, X, s in zip(self.weights[:0:-1], activations[-3::-1],
                            self.strides[:0:-1]):
             d = _convolution_backprop(d, W, X.shape[1], X.shape[2], s, s)
+            d = self.backward_hidden_activation(X, d)
             derivatives.append(d)
-            d *= (X > 0).astype(int)  # derivative of relu
         return derivatives[::-1]
+
+    def parameters_gradient(self, activations, derivatives):
+        """Derivatives of the loss with respect to the parameters.
+
+        Parameters
+        ----------
+        activations : list
+            activations computed by the forward method.
+        derivatives : list
+            derivatives computed by the backward method.
+
+        Returns
+        -------
+        gradient_weights : list
+            list of derivatives with respect to weights.
+        graident_biases : list
+            list of derivatives with respect to biases.
+        """
+        gradient_weights = []
+        gradient_biases = []
+        for X, D, W, b, s in zip(activations, derivatives, self.weights, self.biases,
+                                 self.strides):
+            gradient_weights.append(_convolution_derivative(X, D, W.shape[0], W.shape[1], s, s))
+            gradient_biases.append(D.sum(2).sum(1).sum(0))
+        return gradient_weights, gradient_biases
 
     def loss(self, Y, P):
         """Compute the average cross-entropy."""
@@ -145,17 +169,12 @@ class CNN:
         """
         activations = self.forward(X)
         derivatives = self.backward(Y, activations)
-        for X, D, W, b, s, uw, ub in zip(activations, derivatives,
-                                         self.weights, self.biases,
-                                         self.strides,
-                                         self.update_w, self.update_b):
-            grad_b = D.sum(2).sum(1).sum(0)
-            grad_W = _convolution_derivative(X, D, W.shape[0],
-                                             W.shape[1], s, s)
-            grad_W += lambda_ * W
+        gradient_weights, gradient_biases = self.parameters_gradient(activations, derivatives)
+        for W, grad_W, uw in zip(self.weights, gradient_weights, self.update_w):
             uw *= momentum
-            uw -= lr * grad_W
+            uw -= lr * (grad_W + lambda_ * W)
             W += uw
+        for b, grad_b, ub in zip(self.biases, gradient_biases, self.update_b):
             ub *= momentum
             ub -= lr * grad_b
             b += ub
@@ -221,19 +240,58 @@ class CNN:
 
     def save(self, filename):
         """Save the network to the file."""
-        np.savez(filename, weights=self.weights, biases=self.biases,
-                 strides=self.strides)
+        channels = [w.shape[2] for w in self.weights]
+        channels.append(self.weights[-1].shape[3])
+        kernel_sz = [w.shape[0] for w in self.weights]
+        np.savez(filename, channels=channels, kernel_sz=kernel_sz,
+                 strides=self.strides, *self.weights, *self.biases)
 
     @classmethod
     def load(cls, filename):
         """Create a new network from the data saved in the file."""
-        data = np.load(filename, allow_pickle=True)
-        network = cls()
-        network.weights = data["weights"]
-        network.biases = data["biases"]
-        network.strides = data["strides"]
+        data = np.load(filename)
+        channels = list(data["channels"])
+        kernel_sz = list(data["kernel_sz"])
+        strides = list(data["strides"])
+        layers = len(channels) - 1
+        network = cls(channels, kernel_sz, strides)
+        for i in range(layers):
+            network.weights[i][...] = data["arr_" + str(i)]
+            network.biases[i][...] = data["arr_" + str(i + layers)]
         return network
 
+    def forward_hidden_activation(self, X):
+        """Activation function of hidden layers."""
+        return relu(X)
+
+    def backward_hidden_activation(self, Y, d):
+        """Derivative of the activation function of hidden layers."""
+        return d * (Y > 0).astype(int)
+
+    def backward_to_input(self, d, height, width):
+        """Derivative with respect to input.
+
+        This is normally not computed since it is not used in
+        backpropagation.
+
+        Parameters
+        ----------
+        d : ndarray, shape (m, h, w, n)
+            first derivative computed by the backward method.
+        height : int
+            height of the input.
+        width : int
+            width of the input.
+
+        Returns
+        -------
+        ndarray, shape (m, height, width, i)
+            derivative with respect to input.
+
+        """
+        return _convolution_backprop(d, self.weights[0], height,
+                                     width, self.strides[0],
+                                     self.strides[0])
 
 # The convolution operator and its derivatives are implemented as
 # described in the blog post:
