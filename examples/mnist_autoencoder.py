@@ -34,39 +34,51 @@ def show_reconstruction(before, after):
     plt.title("Output")
     plt.subplot(1, 3, 3)
     error = np.abs(before - after)
-    plt.imshow(error, cmap="hot", vmin=0, vmax=1)
+    plt.imshow(error, cmap="hot", vmin=0, vmax=2)
     plt.title("Error")
 
 
 class AutoEncoder(pvml.MLP):
     def forward_output_activation(self, X):
         """Activation function of the output layer."""
-        return pvml.sigmoid(X)
+        return np.tanh(X)
 
     def backward_output_activation(self, Y, P):
         """Derivative of the activation function of output layer."""
+        # Derivative of the composition of the MSE (2 * (P - Y))
+        # combined with the tanh (1 - P ** 2).
+        return 2 * (P - Y) * (1 - P ** 2) / Y.shape[0]
+
+    def forward_hidden_activation(self, X):
+        """Activation function of the output layer."""
+        return np.tanh(X)
+
+    def backward_hidden_activation(self, Y, D):
+        """Derivative of the activation function of output layer."""
         # Derivative of the composition of the MSE (-2 * (Y - P))
         # combined with the sigmoid (P * (1 - P)).
-        return -2 * (Y - P) * P * (1 - P) / Y.shape[0]
-
+        return D * (1 - Y ** 2)
+    
     def loss(self, Y, P):
         """Compute the average MSE."""
-        return ((Y - P) ** 2).mean()
+        return ((P - Y) ** 2).mean()
 
 
 def main():
     Xtrain, Ytrain = pvml.load_dataset("mnist_train")
     Xtest, Ytest = pvml.load_dataset("mnist_test")
+    Xtrain = 2 * Xtrain - 1
+    Xtest = 2 * Xtest - 1
 
     plt.ion()
-    batch_sz = 100
+    batch_sz = 20
     epochs = 250
 
-    network = AutoEncoder([Xtrain.shape[1], 100, 10, 100, Xtrain.shape[1]])
+    network = AutoEncoder([Xtrain.shape[1], 64, 32, 64, Xtrain.shape[1]])
     errors = [[], []]
     for epoch in range(1, epochs + 1):
         steps = Xtrain.shape[0] // batch_sz
-        network.train(Xtrain, Xtrain, lr=1e-3, lambda_=1e-5,
+        network.train(Xtrain, Xtrain, lr=1e-5, lambda_=0,
                       steps=steps, batch=batch_sz)
         reconstruction = network.forward(Xtrain)[-1]
         training_error = network.loss(Xtrain, reconstruction)

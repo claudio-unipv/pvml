@@ -8,18 +8,14 @@ TODO
   + try subclasses (e.g. autoencoder)
 - CNN
   + padding
-  + refactor to look more similar to MLP
   + Improve PVMLNet (mostly with padding)
-  + refactor load/save to not use pickle
   + reset_momentum method
 - RNN
   + LSTM?
-  + ~~GRU (?)~~
   + RNN example
 - Reinforcement learning
   + Better example with CNN or MLP (use Open AI gym?)
 - Unit test
-  + CNN
   + pvmlnet
   + dataset
 
