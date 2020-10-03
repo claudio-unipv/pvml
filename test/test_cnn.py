@@ -38,17 +38,36 @@ class TestCNN(unittest.TestCase):
         error = np.abs(D1 - D).max()
         self.assertAlmostEqual(error, 0.0, 5)
 
+    def test_padding(self):
+        channels = [1, 1, 1, 1]
+        kernel_sz = [3, 3, 3]
+        strides = [1, 1, 1]
+        pads = [0, 1, 2]
+        cnn = pvml.CNN(channels, kernel_sz, strides, pads)
+        X = np.random.randn(1, 11, 11, 1)
+        A = cnn.forward(X)
+        self.assertEqual(A[0].shape[1], 11)
+        self.assertEqual(A[1].shape[1], 9)
+        self.assertEqual(A[2].shape[1], 9)
+        self.assertEqual(A[3].shape[1], 11)
+        Y = np.zeros(X.shape[0], dtype=int)
+        D = cnn.backward(Y, A)
+        self.assertEqual(A[1].shape[1], D[0].shape[1])
+        self.assertEqual(A[2].shape[1], D[1].shape[1])
+        self.assertEqual(A[3].shape[1], D[2].shape[1])
+
     def test_backward(self):
         """Test the gradient of the loss wrt the input."""
         m = 3
         h, w = 7, 9
         n = 8
         k = 2
-        channels = [n, 4, k]
-        kernel_sz = [3, 3]
-        strides = [1, 2]
+        channels = [n, 4, 4, k]
+        kernel_sz = [3, 3, 3]
+        strides = [1, 2, 1]
+        pads = [0, 1, 2]
 
-        net = CNNTanh(channels, kernel_sz, strides)
+        net = CNNTanh(channels, kernel_sz, strides, pads)
         X = np.random.randn(m, h, w, n)
         Y = np.arange(m) % k
         A = net.forward(X)
@@ -72,13 +91,13 @@ class TestCNN(unittest.TestCase):
         h, w = 14, 18
         n = 3
         k = 5
-        channels = [n, 4, k]
-        kernel_sz = [5, 3, 1]
-        strides = [2, 2, 1]
+        channels = [n, 4, 4, k]
+        kernel_sz = [5, 3, 3]
+        strides = [2, 1, 2]
+        pads = [2, 1, 0]
 
-        net = CNNTanh(channels, kernel_sz, strides)
+        net = CNNTanh(channels, kernel_sz, strides, pads)
         X = np.random.randn(m, h, w, n)
-        X = np.ones_like(X)  # !!!
         Y = np.arange(m) % k
         A = net.forward(X)
         D = net.backward(Y, A)

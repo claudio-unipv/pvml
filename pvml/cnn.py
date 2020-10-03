@@ -18,7 +18,7 @@ class CNN:
     height (3) width (4) channels.
 
     """
-    def __init__(self, channels=None, kernel_sz=None, strides=None):
+    def __init__(self, channels=None, kernel_sz=None, strides=None, pads=None):
         """Create and initialiaze the CNN.
 
         Parameters
@@ -36,6 +36,10 @@ class CNN:
             Must contain one for each layer, except input.  If None
             all strides are one.
 
+        pads : list
+            amount of padding before each convolution (one for each
+            layer).  If None 'valid' convolutions are used.
+
         For instance, CNN([3, 16, 10], [5, 3], [2, 1]) creates a CNN
         with two convolutional layers: the first is a 5x5 convolution
         with stride 2, 3 input and 16 output channels.  The second is
@@ -47,6 +51,7 @@ class CNN:
         channels = (channels or [1])
         kernel_sz = (kernel_sz or [3] * (len(channels) - 1))
         self.strides = (strides or [1] * (len(channels) - 1))
+        self.pads = (pads or [(k - 1) // 2 for k in kernel_sz])
         # Initialize weights with the Kaiming technique
         self.weights = [
             np.random.randn(k, k, m, n) * np.sqrt(2.0 / (k * k * m))
@@ -78,7 +83,9 @@ class CNN:
 
         """
         activations = [X]
-        for W, b, s in zip(self.weights, self.biases, self.strides):
+        for W, b, s, p in zip(self.weights, self.biases, self.strides, self.pads):
+            if p > 0:
+                X = np.pad(X, ((0, 0), (p, p), (p, p), (0, 0)))
             X = _convolution(X, W, s, s) + b
             if W is not self.weights[-1]:
                 X = self.forward_hidden_activation(X)
@@ -111,9 +118,9 @@ class CNN:
         d = d[:, None, None, :].repeat(activations[-2].shape[1], 1)
         d = d.repeat(activations[-2].shape[2], 2)
         derivatives = [d]
-        for W, X, s in zip(self.weights[:0:-1], activations[-3::-1],
-                           self.strides[:0:-1]):
-            d = _convolution_backprop(d, W, X.shape[1], X.shape[2], s, s)
+        for W, X, s, p in zip(self.weights[:0:-1], activations[-3::-1],
+                              self.strides[:0:-1], self.pads[:0:-1]):
+            d = _convolution_backprop(d, W, X.shape[1], X.shape[2], s, s, p, p)
             d = self.backward_hidden_activation(X, d)
             derivatives.append(d)
         return derivatives[::-1]
@@ -137,9 +144,10 @@ class CNN:
         """
         gradient_weights = []
         gradient_biases = []
-        for X, D, W, b, s in zip(activations, derivatives, self.weights, self.biases,
-                                 self.strides):
-            gradient_weights.append(_convolution_derivative(X, D, W.shape[0], W.shape[1], s, s))
+        for X, D, W, b, s, p in zip(activations, derivatives, self.weights, self.biases,
+                                    self.strides, self.pads):
+            gradW = _convolution_derivative(X, D, W.shape[0], W.shape[1], s, s, p, p)
+            gradient_weights.append(gradW)
             gradient_biases.append(D.sum(2).sum(1).sum(0))
         return gradient_weights, gradient_biases
 
@@ -244,7 +252,8 @@ class CNN:
         channels.append(self.weights[-1].shape[3])
         kernel_sz = [w.shape[0] for w in self.weights]
         np.savez(filename, channels=channels, kernel_sz=kernel_sz,
-                 strides=self.strides, *self.weights, *self.biases)
+                 strides=self.strides, pads=self.pads, *self.weights,
+                 *self.biases)
 
     @classmethod
     def load(cls, filename):
@@ -253,8 +262,9 @@ class CNN:
         channels = list(data["channels"])
         kernel_sz = list(data["kernel_sz"])
         strides = list(data["strides"])
+        pads = list(data["pads"])
         layers = len(channels) - 1
-        network = cls(channels, kernel_sz, strides)
+        network = cls(channels, kernel_sz, strides, pads)
         for i in range(layers):
             network.weights[i][...] = data["arr_" + str(i)]
             network.biases[i][...] = data["arr_" + str(i + layers)]
@@ -291,7 +301,8 @@ class CNN:
         """
         return _convolution_backprop(d, self.weights[0], height,
                                      width, self.strides[0],
-                                     self.strides[0])
+                                     self.strides[0], self.pads[0],
+                                     self.pads[0])
 
 # The convolution operator and its derivatives are implemented as
 # described in the blog post:
@@ -404,7 +415,7 @@ def _dilate(X, h, w, ph, pw, sh, sw):
     return Y
 
 
-def _convolution_backprop(D, W, h, w, sh, sw):
+def _convolution_backprop(D, W, h, w, sh, sw, ph, pw):
     """Return the derivative of the convolution.
 
     Parameters
@@ -421,6 +432,10 @@ def _convolution_backprop(D, W, h, w, sh, sw):
         vertical stride.
     sw : int
         horizontal stride.
+    ph : int
+        vertical padding.
+    pw : int
+        horizontal padding.
 
     Returns
     -------
@@ -433,13 +448,13 @@ def _convolution_backprop(D, W, h, w, sh, sw):
     # Dilate and pad the derivative
     kh = W.shape[0]
     kw = W.shape[1]
-    D = _dilate(D, h + kh - 1, w + kw - 1, kh - 1, kw - 1, sh, sw)
+    D = _dilate(D, h + kh - 1, w + kw - 1, kh - 1 - ph, kw - 1 - pw, sh, sw)
     # The coefficient of the filters are mirrored and transposed
     W1 = W[::-1, ::-1, :, :].transpose(0, 1, 3, 2)
     return _convolution(D, W1, 1, 1)
 
 
-def _convolution_derivative(X, D, kh, kw, sh, sw):
+def _convolution_derivative(X, D, kh, kw, sh, sw, ph, pw):
     """Derivative with respect to the filter coefficients.
 
     Parameters
@@ -447,21 +462,27 @@ def _convolution_derivative(X, D, kh, kw, sh, sw):
     X : ndarray, shape (m, h, w, n)
         input images (m images of n channels).
     D : ndarray, shape (m, hd, wd, c)
-        derivative of the result of the convolution
+        derivative of the result of the convolution.
     kh : int
-        height of the convolutional kernel
+        height of the convolutional kernel.
     kw : int
-        width of the convolutional kernel
+        width of the convolutional kernel.
     sh : int
-        vertical stride
+        vertical stride.
     sw : int
-        horizontal stride
+        horizontal stride.
+    ph : int
+        vertical padding.
+    pw : int
+        horizontal padding.
 
     Returns
     -------
     ndarray, shape (kh, kw, n, c)
         derivatives with respect to the filter coefficients
     """
+    if ph > 0 or pw > 0:
+        X = np.pad(X, ((0, 0), (ph, ph), (pw, pw), (0, 0)))
     h = 1 + sh * (D.shape[1] - 1)
     w = 1 + sw * (D.shape[2] - 1)
     D = _dilate(D, h, w, 0, 0, sh, sw)

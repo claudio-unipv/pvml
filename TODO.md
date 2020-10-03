@@ -7,7 +7,6 @@ TODO
 - MLP
   + try subclasses (e.g. autoencoder)
 - CNN
-  + padding
   + Improve PVMLNet (mostly with padding)
   + reset_momentum method
 - RNN
