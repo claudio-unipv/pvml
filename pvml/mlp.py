@@ -33,12 +33,12 @@ class MLP:
         # Biases are zero-initialized.
         self.biases = [np.zeros(m) for m in neuron_counts[1:]]
         self.reset_momentum()
-        
+
     def reset_momentum(self):
         """Create the accumulators for the momentum terms and fill them with zeros."""
         self.update_w = [np.zeros_like(w) for w in self.weights]
         self.update_b = [np.zeros_like(b) for b in self.biases]
-        
+
     def forward(self, X):
         """Compute the activations of the neurons.
 
@@ -268,6 +268,25 @@ class MLP:
         # Implicitly subtract the one-hot vectors
         d[np.arange(Y.shape[0]), Y] -= 1
         return d / Y.shape[0]
+
+    def backward_to_input(self, d):
+        """Derivative with respect to input.
+
+        This is normally not computed since it is not used in
+        backpropagation.
+
+        Parameters
+        ----------
+        d : ndarray, shape (m, n)
+            first derivative computed by the backward method.
+
+        Returns
+        -------
+        ndarray, shape (m, i)
+            derivative with respect to input.
+
+        """
+        return d @ self.weights[0].T
 
     def loss(self, Y, P):
         """Compute the average cross-entropy."""

@@ -60,7 +60,7 @@ class TestMLP(unittest.TestCase):
         A = net.forward(X)
         loss = net.loss(Y, A[-1])
         D = net.backward(Y, A)
-        grad = D[0] @ net.weights[0].T
+        grad = net.backward_to_input(D[0])
         eps = 1e-7
         for index in np.ndindex(*X.shape):
             backup = X[index]
