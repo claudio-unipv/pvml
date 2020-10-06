@@ -7,6 +7,7 @@ import pvml
 import numpy as np
 import argparse
 import os
+import copy
 
 
 # Training pvmlnet with pvml would take too much time.  This is why
@@ -22,6 +23,7 @@ import os
 # - top1: 56.471
 # - top5: 80.289
 #
+# python3 trainpvmlnet.py -j 8 --epochs 30 --lr 0.01 ~/dataset/ilsvrc12
 
 
 MEAN = [0.485, 0.456, 0.406]
@@ -30,8 +32,10 @@ STD = [0.229, 0.224, 0.225]
 
 def make_pvmlnet():
     """Create the network as a pytorch model."""
+    # The first convolution has no padding so that after training it
+    # can be fused with the initial mean/var normalization.
     model = torch.nn.Sequential(
-        torch.nn.Conv2d(3, 96, 7, 4, padding=3),
+        torch.nn.Conv2d(3, 96, 7, 4, padding=0),
         torch.nn.BatchNorm2d(96),
         torch.nn.ReLU(),
         torch.nn.Conv2d(96, 192, 3, 2, padding=1),
@@ -98,8 +102,8 @@ def parse_args():
       help='number of data loading workers (default: 4)')
     a('--epochs', default=90, type=int, metavar='N',
       help='number of total epochs to run')
-    a('-b', '--batch-size', default=256, type=int, metavar='N',
-      help='mini-batch size (default: 256)')
+    a('-b', '--batch-size', default=192, type=int, metavar='N',
+      help='mini-batch size (default: 192)')
     a('--lr', '--learning-rate', default=0.01, type=float, metavar='LR',
       help='initial learning rate', dest='lr')
     a('--momentum', default=0.9, type=float, metavar='M',
@@ -177,8 +181,10 @@ def main():
         model = make_pvmlnet()
     else:
         model = torch.load(args.start_from)
-    model = model.cuda(args.gpu)
-    criterion = torch.nn.CrossEntropyLoss().cuda(args.gpu)
+    criterion = torch.nn.CrossEntropyLoss()
+    if args.gpu is not None:
+        model = model.cuda(args.gpu)
+        criterion = criterion.cuda(args.gpu)
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
@@ -204,7 +210,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
     for i, (images, target) in enumerate(train_loader):
         if args.gpu is not None:
             images = images.cuda(args.gpu, non_blocking=True)
-        target = target.cuda(args.gpu, non_blocking=True)
+            target = target.cuda(args.gpu, non_blocking=True)
         output = model(images).squeeze(-1).squeeze(-1)
         loss = criterion(output, target)
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -226,7 +232,7 @@ def validate(val_loader, model, criterion, args):
         for i, (images, target) in enumerate(val_loader):
             if args.gpu is not None:
                 images = images.cuda(args.gpu, non_blocking=True)
-            target = target.cuda(args.gpu, non_blocking=True)
+                target = target.cuda(args.gpu, non_blocking=True)
             output = model(images).squeeze(-1).squeeze(-1)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             tot1 += acc1.item()
@@ -260,7 +266,6 @@ def embed_normalization(net):
     c = net[0]
     y = (mean / std).view(1, 3, 1, 1).repeat(1, 1, c.weight.size(2), c.weight.size(3))
     bb = torch.nn.functional.conv2d(y, c.weight.data, padding=0)
-    breakpoint()
     c.weight.data /= std.view(1, 3, 1, 1)
     c.bias.data -= bb.data[0, :, 0, 0]
 
@@ -296,7 +301,7 @@ def fuse_modules(net):
         if isinstance(net[i], torch.nn.Conv2d) and isinstance(net[i + 1], torch.nn.BatchNorm2d):
             mods.append(fuse_convbn(net[i], net[i + 1]))
         elif not isinstance(net[i], torch.nn.BatchNorm2d) and not isinstance(net[i], torch.nn.Dropout2d):
-            mods.append(net[i])
+            mods.append(copy.deepcopy(net[i]))
     return torch.nn.Sequential(*mods)
 
 
