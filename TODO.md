@@ -8,7 +8,6 @@ TODO
   + try subclasses (e.g. autoencoder)
 - CNN
   + Improve PVMLNet (mostly with padding)
-  + reset_momentum method
 - RNN
   + LSTM?
   + RNN example

@@ -59,7 +59,10 @@ class CNN:
         ]
         # Biases are zero-initialized
         self.biases = [np.zeros(m) for m in channels[1:]]
-        # Accumulators for the momentum terms
+        self.reset_momentum()
+
+    def reset_momentum(self):
+        """Create the accumulators for the momentum terms and fill them with zeros."""
         self.update_w = [np.zeros_like(w) for w in self.weights]
         self.update_b = [np.zeros_like(b) for b in self.biases]
 
