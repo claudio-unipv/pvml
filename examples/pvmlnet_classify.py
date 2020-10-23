@@ -192,7 +192,14 @@ if len(sys.argv) < 2:
     sys.exit()
 
 # Load the network
-net = pvml.CNN.load("pvmlnet.npz")
+try:
+    net = pvml.CNN.load("pvmlnet.npz")
+except FileNotFoundError:
+    print("Network definition file 'pvmlnet.npz' not found!")
+    print("You can download it from the following address:")
+    print("https://drive.google.com/file/d/1VmpvQkBk_dLsU54muiwsGcRRT_cSiYwa/view?usp=sharing")
+    print()
+    sys.exit()
 
 # Load the images
 filenames = sys.argv[1:]
