@@ -6,7 +6,6 @@ import torchvision.datasets
 import pvml
 import numpy as np
 import argparse
-import os
 import copy
 
 
@@ -15,16 +14,19 @@ import copy
 # the end the learned weights are copied in the pvml CNN.
 #
 # Suggested training schedule:
-# - 30 epocs with learning rate 0.01
-# - 30 epocs with learning rate 0.001
-# - 30 epocs with learning rate 0.0001
+# - 20 epocs with learning rate 0.01
+# - 20 epocs with learning rate 0.001
+# - 20 epocs with learning rate 0.0001
 #
 # Accuracy for ilsvrc2012:
-# - top1: 56.471
-# - top5: 80.289
+# - top1: 60.958
+# - top5: 83.321
 #
-# python3 trainpvmlnet.py -j 8 --epochs 30 --lr 0.01 ~/dataset/ilsvrc12
-
+# python3 trainpvmlnet.py -j 8 --epochs 20 --lr 0.01 ~/dataset/ilsvrc12
+# python3 trainpvmlnet.py -j 8 --epochs 20 --lr 0.001 \
+#    --start-from pvmlnet_last.pt ~/dataset/ilsvrc12/
+# python3 trainpvmlnet.py -j 8 --epochs 20 --lr 0.0001 \
+#    --start-from pvmlnet_last.pt ~/dataset/ilsvrc12/
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -63,7 +65,7 @@ def make_pvmlnet():
         torch.nn.Conv2d(512, 512, 3, 1, padding=1),
         torch.nn.BatchNorm2d(512),
         torch.nn.ReLU(),
-        
+
         torch.nn.Conv2d(512, 1024, 4, 1, padding=0),
         torch.nn.BatchNorm2d(1024),
         torch.nn.ReLU(),
@@ -76,7 +78,7 @@ def make_pvmlnet():
         torch.nn.AdaptiveAvgPool2d(1)
     )
     return model
-    
+
 
 def ___make_pvmlnet():
     """Mirror pvmlnet as a pytorch model."""
@@ -138,7 +140,7 @@ def export(ptfile, npfile):
     if nw != len(net2.weights) or nb != len(net2.biases):
         raise RuntimeError("Wrong number of parameters")
     net2.save(npfile)
-    
+
 
 def main():
     args = parse_args()
@@ -309,7 +311,7 @@ def save_pvmlnet(net, filename):
     pnet = convert_model(net)
     pnet.save(filename)
 
-    
+
 def convert_model(net):
     """Pytorch to pvml conversion."""
     net = fuse_modules(net).to("cpu")
@@ -320,6 +322,11 @@ def convert_model(net):
     strides = [c.stride[0] for c in net if isinstance(c, torch.nn.Conv2d)]
     pads = [c.padding[0] for c in net if isinstance(c, torch.nn.Conv2d)]
     pnet = pvml.CNN(channels, kernel_sz, strides, pads)
+
+    # Convert to float32 to save space
+    pnet.weights = [w.astype(np.float32) for w in pnet.weights]
+    pnet.biases = [w.astype(np.float32) for w in pnet.biases]
+
     k = 0
     for i in range(len(net)):
         if isinstance(net[i], torch.nn.Conv2d):
@@ -330,7 +337,7 @@ def convert_model(net):
             k += 1
     return pnet
 
-    
+
 def print_network(net):
     """Print the size of activations after each convolutional layer."""
     x = torch.zeros((1, 3, 224, 224))
@@ -357,14 +364,3 @@ if __name__ == "__main__":
     print_network(net)
     print()
     main()
-    # # export("pvmlnet_90.pt", "pvmlnet.npz")
-    # net = make_pvmlnet()
-    # print(net)
-    # x = torch.rand(4, 3, 224, 224)
-    # y = net(x)
-    # print(x.size(), "->", y.size())
-    # net2 = pvml.make_pvmlnet()
-    # x = np.zeros((4, 224, 224, 3))
-    # a = net2.forward(x)
-    # for aa in a:
-    #     print("x".join(map(str, aa.shape)))
