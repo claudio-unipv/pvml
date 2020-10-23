@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pvml",
-    version="0.1.0",
+    version="0.2.0",
     author="Claudio Cusano",
     author_email="claudio.cusano@unipv.it",
     description="A small and simple machine learning library",
@@ -21,6 +21,7 @@ setuptools.setup(
     install_requires=[
         "numpy>=1.13.0",
         "matplotlib>=2.1.0",
+        "Pillow>=5.1.0"
     ],
     python_requires='>=3.6',
 )
