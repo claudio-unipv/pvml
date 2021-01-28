@@ -214,9 +214,9 @@ class LogisticRegressionModel(DemoModel):
         self.b = 0
 
     def train_step(self, X, Y, steps):
-        ret = pvml.logreg_l2_train(X, Y, lr=self.lr,
-                                   lambda_=self.lambda_, steps=steps,
-                                   init_w=self.w, init_b=self.b)
+        ret = pvml.logreg_train(X, Y, lr=self.lr,
+                                lambda_=self.lambda_, steps=steps,
+                                init_w=self.w, init_b=self.b)
         self.w, self.b = ret
 
     def inference(self, X):
