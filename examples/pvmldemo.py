@@ -153,16 +153,26 @@ class DemoModel:
         if v.ndim == 1:
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, [0.5], cmap=plt.cm.coolwarm)
+            self.dump_contour(gx, gy, v - 0.5, title)
         elif v.shape[1] == 2:
             v = v[:, 0] - v[:, 1]
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, [0.0], cmap=plt.cm.coolwarm)
+            self.dump_contour(gx, gy, v, title)
         else:
             values = np.arange(v.shape[1] - 1) + 0.5
             v = v.argmax(1)
             v = v.reshape(gx.shape)
             plt.contour(gx, gy, v, values, cmap=plt.cm.coolwarm)
 
+    def dump_contour(self, gx, gy, v, title):
+        if self.dump:
+            with open(f"contour-{title}.txt".replace(" ", "_"), "w") as f:
+                for i in range(v.shape[0]):
+                    for j in range(v.shape[1]):
+                        print(gx[i, j], gy[i, j], v[i, j], file=f)
+                    print(file=f)
+            
     def plot_confusion(self, fignum, title, predictions, labels):
         if not self.draw or not self.confusion_matrix:
             return
