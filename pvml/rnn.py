@@ -405,8 +405,8 @@ class GRUCell(RNNAbstractCell):
 
     def backward(self, DL):
         # Given DL[t] = dLoss[t] / dH[t]:
-        #   DH[t] = DL[t] + Uz^T DSz[t + 1] + (Ur^T DSr[t + 1]) * R[t + 1]
-        #         + Uh^T DSz[t + 1] + DH[t + 1] * (1 - Z[t + 1])
+        #   DH[t] = DL[t] + Uz^T DSz[t + 1] + Ur^T DSr[t + 1]
+        #         + (Uh^T DSz[t + 1]) * R[t + 1] + DH[t + 1] * (1 - Z[t + 1])
         #
         #   DH'[t] = DH[t] * Z[t]
         #   DSh[t] = DH'[t] * a'(H[t])
