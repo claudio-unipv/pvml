@@ -639,9 +639,13 @@ def main():
     args = parse_args()
     np.random.seed(args.seed)
     X, Y = pvml.load_dataset(args.train)
+    print("Training set loaded: {} samples, {} features, {} classes".format(
+          X.shape[0], X.shape[1], Y.max() + 1))
     X, Y = select_features(X, Y, args.features, args.class_)
     if args.test:
         Xtest, Ytest = pvml.load_dataset(args.test)
+        print("Test set loaded: {} samples, {} features, {} classes".format(
+              Xtest.shape[0], Xtest.shape[1], Ytest.max() + 1))
         Xtest, Ytest = select_features(Xtest, Ytest, args.features,
                                        args.class_)
     else:
