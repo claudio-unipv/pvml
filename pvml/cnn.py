@@ -26,6 +26,7 @@ class CNN:
         channels : list
             number of channels in the layers (first input, then hiddens,
             then output).  At least two are required.
+
         kernel_sz : list
             size (height and width) of the spatial filters used by
             convolutions.  Must contain one size for each layer,
@@ -38,7 +39,7 @@ class CNN:
 
         pads : list
             amount of padding before each convolution (one for each
-            layer).  If None 'valid' convolutions are used.
+            layer).  If None 'same size' convolutions are used.
 
         For instance, CNN([3, 16, 10], [5, 3], [2, 1]) creates a CNN
         with two convolutional layers: the first is a 5x5 convolution

@@ -58,14 +58,12 @@ def make_pvmlnet():
         torch.nn.Conv2d(512, 512, 3, 1, padding=1),
         torch.nn.BatchNorm2d(512),
         torch.nn.ReLU(),
-
         torch.nn.Conv2d(512, 512, 3, 2, padding=1),
         torch.nn.BatchNorm2d(512),
         torch.nn.ReLU(),
         torch.nn.Conv2d(512, 512, 3, 1, padding=1),
         torch.nn.BatchNorm2d(512),
         torch.nn.ReLU(),
-
         torch.nn.Conv2d(512, 1024, 4, 1, padding=0),
         torch.nn.BatchNorm2d(1024),
         torch.nn.ReLU(),
@@ -77,22 +75,6 @@ def make_pvmlnet():
         torch.nn.Conv2d(1024, 1000, 1, 1, padding=0),
         torch.nn.AdaptiveAvgPool2d(1)
     )
-    return model
-
-
-def ___make_pvmlnet():
-    """Mirror pvmlnet as a pytorch model."""
-    layers = [torch.nn.ConstantPad2d(16, 0.0)]
-    in_channels = 3
-    for channels, size, stride in LAYERS:
-        conv = torch.nn.Conv2d(in_channels, channels, size, stride, padding=0)
-        layers.append(conv)
-        layers.append(torch.nn.ReLU())
-        in_channels = channels
-    layers[-1] = torch.nn.AdaptiveAvgPool2d(1)
-    layers[-6:-6] = [torch.nn.Dropout2d()]
-    layers[-4:-4] = [torch.nn.Dropout2d()]
-    model = torch.nn.Sequential(*layers)
     return model
 
 
@@ -145,9 +127,9 @@ def export(ptfile, npfile):
 def main():
     args = parse_args()
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # Setup data
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     tr = torchvision.transforms.Compose([
         torchvision.transforms.RandomResizedCrop(224),
@@ -175,9 +157,9 @@ def main():
         val_dataset, batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # Setup models and optimizer
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     if args.start_from is None:
         model = make_pvmlnet()
@@ -191,9 +173,9 @@ def main():
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
 
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
     # Training loop
-    #----------------------------------------------------------------------
+    # ----------------------------------------------------------------------
 
     best_acc1 = 0
     for epoch in range(args.epochs):
@@ -222,7 +204,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         optimizer.step()
 
         if i % args.print_freq == 0:
-            print("[{}] {}: {:.3f} {:.3f} {:.3f}".format(epoch, i, loss.item(), acc1.item(), acc5.item()))
+            msg = "[{}] {}: {:.3f} {:.3f} {:.3f}"
+            print(msg.format(epoch, i, loss.item(), acc1.item(), acc5.item()))
 
 
 def validate(val_loader, model, criterion, args):
@@ -262,7 +245,6 @@ def embed_normalization(net):
     """Include normalization in the model."""
     # c * ((x - m) / s) + b   becomes   c' * x + b'
     #   with   c' = c / s   and   b' = b - c * (m / s)
-    x = torch.randn(1, 3, 224, 224)
     mean = torch.tensor(MEAN)
     std = torch.tensor(STD)
     c = net[0]
@@ -297,12 +279,12 @@ def fuse_convbn(conv, bn):
 
 
 def fuse_modules(net):
-    to_fuse = []
     mods = []
     for i in range(len(net) - 1):
         if isinstance(net[i], torch.nn.Conv2d) and isinstance(net[i + 1], torch.nn.BatchNorm2d):
             mods.append(fuse_convbn(net[i], net[i + 1]))
-        elif not isinstance(net[i], torch.nn.BatchNorm2d) and not isinstance(net[i], torch.nn.Dropout2d):
+        elif (not isinstance(net[i], torch.nn.BatchNorm2d) and
+              not isinstance(net[i], torch.nn.Dropout2d)):
             mods.append(copy.deepcopy(net[i]))
     return torch.nn.Sequential(*mods)
 
