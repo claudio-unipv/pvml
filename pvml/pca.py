@@ -36,7 +36,7 @@ def pca(X, *Xtest, mincomponents=1, retvar=0.95):
     """
     _check_all_same_size(X, *Xtest)
     # Compute the moments
-    mu = X.mean(0, keepdims=True)
+    mu = X.mean(0)
     sigma = np.cov(X.T)
     # Compute and sort the eigenvalues
     evals, evecs = np.linalg.eigh(sigma)
@@ -45,7 +45,7 @@ def pca(X, *Xtest, mincomponents=1, retvar=0.95):
     # Determine the components to retain
     k = 1 + (np.cumsum(evals) >= retvar * evals.sum()).nonzero()[0][0]
     k = max(k, mincomponents)
-    w = evecs[:, order[:k]]  # 1e-15 avoids div. by zero
+    w = evecs[:, order[:k]]
     # Transform the data
     X = (X - mu) @ w
     if not Xtest:

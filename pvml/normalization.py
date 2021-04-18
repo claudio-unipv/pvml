@@ -24,8 +24,8 @@ def meanvar_normalization(X, *Xtest):
 
     """
     _check_all_same_size(X, *Xtest)
-    mu = X.mean(0, keepdims=True)
-    sigma = X.std(0, keepdims=True)
+    mu = X.mean(0)
+    sigma = X.std(0)
     X = X - mu
     X /= np.maximum(sigma, 1e-15)  # 1e-15 avoids division by zero
     if not Xtest:
@@ -57,8 +57,8 @@ def minmax_normalization(X, *Xtest):
 
     """
     _check_all_same_size(X, *Xtest)
-    xmin = X.min(0, keepdims=True)
-    xmax = X.max(0, keepdims=True)
+    xmin = X.min(0)
+    xmax = X.max(0)
     X = X - xmin
     X = X / np.maximum(xmax - xmin, 1e-15)  # 1e-15 avoids division by zero
     if not Xtest:
@@ -91,7 +91,7 @@ def maxabs_normalization(X, *Xtest):
     """
     _check_all_same_size(X, *Xtest)
     # 1e-15 avoids division by zero
-    amax = np.maximum(np.abs(X).max(0, keepdims=True), 1e-15)
+    amax = np.maximum(np.abs(X).max(0), 1e-15)
     X = X / amax
     if not Xtest:
         return X
@@ -182,7 +182,7 @@ def whitening(X, *Xtest):
 
     """
     _check_all_same_size(X, *Xtest)
-    mu = X.mean(0, keepdims=True)
+    mu = X.mean(0)
     sigma = np.cov(X.T)
     evals, evecs = np.linalg.eigh(sigma)
     w = (np.maximum(evals, 1e-15) ** -0.5) * evecs  # 1e-15 avoids div. by zero
