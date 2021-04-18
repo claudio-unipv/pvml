@@ -33,14 +33,13 @@ def categorical_naive_bayes_train(X, Y, priors=None):
     k = Y.max() + 1
     probs = np.empty((k, n, q))
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        tot = indices.shape[0] + q  # With Laplacian smoothing
         for j in range(n):
-            counts = (1 + np.bincount(X[indices, j], minlength=q))
-            probs[c, j, :] = counts / tot
+            counts = np.bincount(X[Y == c, j], minlength=q)
+            # With Laplacian smoothing
+            probs[c, j, :] = (counts + 1) / (counts.sum() + q)
     if priors is None:
         priors = np.bincount(Y) / m
-    return (probs, priors)
+    return probs, priors
 
 
 def categorical_naive_bayes_inference(X, probs, priors):
@@ -108,13 +107,13 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     probs = np.empty((k, n))
     for c in range(k):
         counts = X[Y == c, :].sum(0)
-        tot = counts.sum()
-        probs[c, :] = (counts + 1) / (tot + n)  # with Laplacian smoothing)
+        # with Laplacian smoothing)
+        probs[c, :] = (counts + 1) / (counts.sum() + n)
     if priors is None:
         priors = np.bincount(Y) / m
     W = np.log(probs).T
     b = log_nowarn(priors)
-    return (W, b)
+    return W, b
 
 
 def multinomial_naive_bayes_inference(X, W, b):
@@ -173,10 +172,9 @@ def gaussian_naive_bayes_train(X, Y, priors=None):
     if priors is None:
         priors = np.bincount(Y) / m
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        means[c, :] = X[indices, :].mean(0)
-        vars[c, :] = X[indices, :].var(0)
-    return (means, vars, priors)
+        means[c, :] = X[Y == c, :].mean(0)
+        vars[c, :] = X[Y == c, :].var(0)
+    return means, vars, priors
 
 
 def gaussian_naive_bayes_inference(X, means, vars, priors):
@@ -201,9 +199,13 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
         prediction scores.
     """
     _check_size("mn, kn, k", X, means, priors)
-    diffs = (X[:, None, :] - means[None, :, :]) ** 2
-    diffs /= vars[None, :, :]
-    scores = -0.5 * diffs.sum(2) - 0.5 * np.log(vars).sum(1)[None, :]
-    scores += log_nowarn(priors)[None, :]
+    m = X.shape[0]
+    k = means.shape[0]
+    scores = np.empty((m, k))
+    for c in range(k) :
+        diffs = ((X - means[c, :]) ** 2) / (2 * vars[c, :])
+        scores[:, c] = -diffs.sum(1)
+    scores -= 0.5 * np.log(vars).sum(1)
+    scores += log_nowarn(priors)
     labels = np.argmax(scores, 1)
     return labels, scores
