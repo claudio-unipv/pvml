@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import squared_distance_matrix
 from .checks import _check_size, _check_labels
 
 
@@ -31,7 +32,7 @@ def knn_inference(X, Xtrain, Ytrain, k=1):
     Ytrain = _check_labels(Ytrain)
     m = X.shape[0]
     classes = Ytrain.max() + 1
-    D = _dist_matrix(X, Xtrain)
+    D = squared_distance_matrix(X, Xtrain)
     if k == 1:
         index = np.argmin(D, 1)
         labels = Ytrain[index]
@@ -66,7 +67,7 @@ def knn_select_k(X, Y, maxk=101):
     """
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
-    D = _dist_matrix(X, X)
+    D = squared_distance_matrix(X, X)
     m = X.shape[0]
     classes = Y.max() + 1
     np.fill_diagonal(D, np.inf)
@@ -93,13 +94,3 @@ def _bincount_rows(X, values):
     idx = X.astype(int) + values * np.arange(m)[:, np.newaxis]
     c = np.bincount(idx.ravel(), minlength=values * m)
     return c.reshape(-1, values)
-
-
-def _dist_matrix(X1, X2):
-    """Compute the matrix D.
-
-    D[i, j] is the square of the distance between X1[i, :] and X2[j ,:].
-    """
-    Q1 = (X1 ** 2).sum(1, keepdims=True)
-    Q2 = (X2 ** 2).sum(1, keepdims=True)
-    return Q1 - 2 * X1 @ X2.T + Q2.T

@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import log_nowarn
+from .utils import log_nowarn, squared_distance_matrix
 from .checks import _check_size, _check_labels
 
 
@@ -34,11 +34,10 @@ def hgda_train(X, Y, priors=None):
     if priors is None:
         priors = np.bincount(Y) / m
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        means[c, :] = X[indices, :].mean(0)
-        cov = np.cov(X[indices, :].T)
+        means[c, :] = X[Y == c, :].mean(0)
+        cov = np.cov(X[Y == c, :].T)
         invcovs[c, :, :] = np.linalg.inv(cov)
-    return (means, invcovs, priors)
+    return means, invcovs, priors
 
 
 def hgda_inference(X, means, invcovs, priors):
@@ -68,7 +67,7 @@ def hgda_inference(X, means, invcovs, priors):
     scores = np.empty((m, k))
     for c in range(k):
         det = np.linalg.det(invcovs[c, :, :])
-        diff = X - means[None, c, :]
+        diff = X - means[c, :]
         q = ((diff @ invcovs[c, :, :]) * diff).sum(1)
         scores[:, c] = 0.5 * q - 0.5 * np.log(det) - log_nowarn(priors[c])
     labels = np.argmin(scores, 1)
@@ -104,14 +103,13 @@ def ogda_train(X, Y, priors=None):
     if priors is None:
         priors = np.bincount(Y) / m
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        means[c, :] = X[indices, :].mean(0)
-        cov += priors[c] * np.cov(X[indices, :].T)
+        means[c, :] = X[Y == c, :].mean(0)
+        cov += priors[c] * np.cov(X[Y == c, :].T)
     icov = np.linalg.inv(cov)
     W = -(icov @ means.T)
     q = ((means @ icov) * means).sum(1)
     b = 0.5 * q - log_nowarn(priors)
-    return (W, b)
+    return W, b
 
 
 def ogda_inference(X, W, b):
@@ -160,9 +158,8 @@ def mindist_train(X, Y):
     n = X.shape[1]
     means = np.empty((k, n))
     for c in range(k):
-        indices = (Y == c).nonzero()[0]
-        means[c, :] = X[indices, :].mean(0)
-    return (means)
+        means[c, :] = X[Y == c, :].mean(0)
+    return means
 
 
 def mindist_inference(X, means):
@@ -183,6 +180,6 @@ def mindist_inference(X, means):
         scores assigned to each class.
     """
     _check_size("mn, kn", X, means)
-    sqdists = ((X[:, None, :] - means[None, :, :]) ** 2).sum(2)
-    labels = np.argmin(sqdists, 1)
-    return labels, -sqdists
+    d = squared_distance_matrix(X, means)
+    labels = np.argmin(d, 1)
+    return labels, -d
