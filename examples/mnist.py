@@ -53,7 +53,8 @@ def show_confusion_matrix(Y, predictions):
     for i in range(classes):
         for j in range(classes):
             txt = "{:.1f}".format(cm[i, j], ha="center", va="center")
-            plt.text(j - 0.25, i, txt)
+            col = ("black" if cm[i, j] < 75 else "white")
+            plt.text(j - 0.25, i, txt, color=col)
     plt.title("Confusion matrix")
 
 

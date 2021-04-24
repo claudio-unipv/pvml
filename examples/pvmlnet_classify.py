@@ -184,7 +184,7 @@ seashore, valley, volcano, ballplayer, groom, scuba diver, rapeseed,
 daisy, yellow lady's slipper, corn, acorn, hip, buckeye, coral fungus,
 agaric, gyromitra, stinkhorn, earthstar, hen-of-the-woods, bolete,
 ear, toilet tissue, """.replace("\n", " ").split(",")))
-    
+
 
 # Check the command line
 if len(sys.argv) < 2:

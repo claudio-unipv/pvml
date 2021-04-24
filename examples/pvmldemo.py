@@ -172,7 +172,7 @@ class DemoModel:
                     for j in range(v.shape[1]):
                         print(gx[i, j], gy[i, j], v[i, j], file=f)
                     print(file=f)
-            
+
     def plot_confusion(self, fignum, title, predictions, labels):
         if not self.draw or not self.confusion_matrix:
             return
