@@ -66,7 +66,8 @@ def main():
     batch_sz = 100
     epochs = 75
 
-    network = pvml.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1])
+    # Channels / kernel_sizes / strides / padding
+    network = pvml.CNN([1, 12, 32, 48, 10], [7, 3, 3, 3], [2, 2, 1, 1], [0, 0, 0, 0])
     A = network.forward(np.empty((1, 28, 28, 1)))
     print("Neurons:", " -> ".join(("x".join(map(str, a.shape[1:]))) for
                                   a in A))
