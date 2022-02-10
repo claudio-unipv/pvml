@@ -21,6 +21,8 @@ def svm_inference(X, w, b):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
+    X = np.asarray(X)
+    w = np.asarray(w)
     _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     labels = (logits > 0).astype(int)
@@ -54,6 +56,10 @@ def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    Y = np.asarray(Y).astype(int, copy=False)
+    X = np.asarray(X)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
     _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
@@ -85,6 +91,8 @@ def hinge_loss(labels, logits):
     float
         average hinge loss.
     """
+    labels = np.asarray(labels).astype(int, copy=False)
+    logits = np.asarray(logits)
     _check_size("m, m", labels, logits)
     labels = _check_labels(labels, 2)
     loss = np.maximum(0, 1 - (2 * labels - 1) * logits)

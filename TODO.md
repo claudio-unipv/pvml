@@ -17,7 +17,8 @@ TODO
 
 ASARRAY
 -------
-- [ ] logistic_regression.py
+- [X] logistic_regression.py
+- [X] svm.py
 - [ ] checks.py
 - [ ] classtree.py
 - [ ] cnn.py
@@ -35,13 +36,13 @@ ASARRAY
 - [ ] pca.py
 - [ ] perceptron.py
 - [ ] rnn.py
-- [ ] svm.py
 - [ ] utils.py
 
 
 PYTEST
 ------
-- [ ] test_checks.py
+- [X] test_checks.py
+- [X] test_svm.py
 - [ ] test_classtree.py
 - [ ] test_cnn.py
 - [ ] test_data.py
@@ -59,7 +60,6 @@ PYTEST
 - [ ] test_pca.py
 - [ ] test_perceptron.py
 - [ ] test_rnn.py
-- [ ] test_svm.py
 
 
 
