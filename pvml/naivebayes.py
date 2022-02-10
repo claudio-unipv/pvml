@@ -202,7 +202,7 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     m = X.shape[0]
     k = means.shape[0]
     scores = np.empty((m, k))
-    for c in range(k) :
+    for c in range(k):
         diffs = ((X - means[c, :]) ** 2) / (2 * vars[c, :])
         scores[:, c] = -diffs.sum(1)
     scores -= 0.5 * np.log(vars).sum(1)
