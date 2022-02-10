@@ -20,6 +20,8 @@ def logreg_inference(X, w, b):
     ndarray, shape (m,)
         probability estimates (one per feature vector).
     """
+    X = np.asarray(X)
+    w = np.asarray(w)
     _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     return sigmoid(logits)
@@ -40,6 +42,8 @@ def binary_cross_entropy(Y, P):
     float
         average cross entropy.
     """
+    Y = np.asarray(Y).astype(int, copy=False)
+    P = np.asarray(P)
     _check_size("m, m", Y, P)
     Y = _check_labels(Y, 2)
     log1 = log_nowarn(P)
@@ -78,6 +82,10 @@ def logreg_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None,
     b : float
         learned bias.
     """
+    Y = np.asarray(Y).astype(int, copy=False)
+    X = np.asarray(X)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
     _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
@@ -117,6 +125,10 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    Y = np.asarray(Y).astype(int, copy=False)
+    X = np.asarray(X)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
     _check_size("mn, m, n?, *", X, Y, init_w, init_b)
     Y = _check_labels(Y, 2)
     m, n = X.shape
