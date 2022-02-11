@@ -29,13 +29,13 @@ ASARRAY
 - [X] nearest_neighbor.py
 - [X] naivebayes.py
 - [X] kmeans.py
-- [ ] normalization.py
+- [X] normalization.py
+- [X] pca.py
+- [X] perceptron.py
 - [ ] cnn.py
-- [ ] dataset.py
 - [ ] mlp.py
-- [ ] pca.py
-- [ ] perceptron.py
 - [ ] rnn.py
+- [ ] dataset.py
 - [ ] utils.py
 
 
@@ -54,11 +54,11 @@ PYTEST
 - [X] test_knn.py
 - [X] test_naivebayes.py
 - [X] test_kmeans.py
-- [ ] test_normalization.py
+- [X] test_normalization.py
+- [X] test_pca.py
+- [X] test_perceptron.py
 - [ ] test_cnn.py
 - [ ] test_mlp.py
-- [ ] test_pca.py
-- [ ] test_perceptron.py
 - [ ] test_rnn.py
 
 
