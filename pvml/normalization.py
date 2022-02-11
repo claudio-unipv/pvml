@@ -23,6 +23,8 @@ def meanvar_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     mu = X.mean(0)
     sigma = X.std(0)
@@ -56,6 +58,8 @@ def minmax_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     xmin = X.min(0)
     xmax = X.max(0)
@@ -89,6 +93,8 @@ def maxabs_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     # 1e-15 avoids division by zero
     amax = np.maximum(np.abs(X).max(0), 1e-15)
@@ -120,6 +126,8 @@ def l2_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     q = np.sqrt((X ** 2).sum(1, keepdims=True))
     X = X / np.maximum(q, 1e-15)  # 1e-15 avoids division by zero
@@ -150,6 +158,8 @@ def l1_normalization(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     q = np.abs(X).sum(1, keepdims=True)
     X = X / np.maximum(q, 1e-15)  # 1e-15 avoids division by zero
@@ -181,6 +191,8 @@ def whitening(X, *Xtest):
         normalized test features (one for each array in Xtest).
 
     """
+    X = np.asarray(X)
+    Xtest = [np.asarray(XX) for XX in Xtest]
     _check_all_same_size(X, *Xtest)
     mu = X.mean(0)
     sigma = np.cov(X.T)
