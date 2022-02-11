@@ -25,6 +25,8 @@ def perceptron_train(X, Y, steps=10000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
     _check_size("mn, m, n?, *?", X, Y, init_w, init_b)
     Y = _check_labels(Y)
     w = (init_w if init_w is not None else np.zeros(X.shape[1]))
@@ -60,6 +62,8 @@ def perceptron_inference(X, w, b):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
+    X = np.asarray(X)
+    w = np.asarray(w)
     _check_size("mn, n, *", X, w, b)
     logits = X @ w + b
     labels = (logits > 0).astype(int)
