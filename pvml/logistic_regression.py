@@ -42,7 +42,7 @@ def binary_cross_entropy(Y, P):
     float
         average cross entropy.
     """
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     P = np.asarray(P)
     _check_size("m, m", Y, P)
     Y = _check_labels(Y, 2)
@@ -82,7 +82,7 @@ def logreg_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None,
     b : float
         learned bias.
     """
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     X = np.asarray(X)
     if init_w is not None:
         init_w = np.asfarray(init_w)
@@ -125,7 +125,7 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     X = np.asarray(X)
     if init_w is not None:
         init_w = np.asfarray(init_w)

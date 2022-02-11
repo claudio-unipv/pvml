@@ -85,7 +85,7 @@ def one_vs_one_ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
         learned biases.
     """
     X = np.asarray(X)
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     if init_alpha is not None:
         init_alpha = np.asfarray(init_alpha)
     if init_b is not None:
@@ -184,7 +184,7 @@ def one_vs_rest_ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
         learned biases.
     """
     X = np.asarray(X)
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     if init_alpha is not None:
         init_alpha = np.asfarray(init_alpha)
     if init_b is not None:

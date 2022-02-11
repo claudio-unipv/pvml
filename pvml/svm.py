@@ -56,7 +56,7 @@ def svm_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
     b : float
         learned bias.
     """
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     X = np.asarray(X)
     if init_w is not None:
         init_w = np.asfarray(init_w)
@@ -91,7 +91,7 @@ def hinge_loss(labels, logits):
     float
         average hinge loss.
     """
-    labels = np.asarray(labels).astype(int, copy=False)
+    labels = np.asarray(labels).astype(int)
     logits = np.asarray(logits)
     _check_size("m, m", labels, logits)
     labels = _check_labels(labels, 2)

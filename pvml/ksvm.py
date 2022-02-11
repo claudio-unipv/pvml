@@ -102,7 +102,7 @@ def ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
     b : float
         learned bias.
     """
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     X = np.asarray(X)
     if init_alpha is not None:
         init_alpha = np.asfarray(init_alpha)

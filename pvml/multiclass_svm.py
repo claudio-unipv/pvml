@@ -72,7 +72,7 @@ def one_vs_one_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
         vector of biases.
     """
     X = np.asarray(X)
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     if init_w is not None:
         init_w = np.asfarray(init_w)
     if init_b is not None:
@@ -158,7 +158,7 @@ def one_vs_rest_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
         vector of biases.
     """
     X = np.asarray(X)
-    Y = np.asarray(Y).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
     if init_w is not None:
         init_w = np.asfarray(init_w)
     if init_b is not None:
