@@ -21,7 +21,7 @@ from .utils import one_hot_vectors, log_nowarn
 #
 # where size(T) is the number of leaves, and error(T) is the training
 # error of the tree T.  For lambda = 0 the initial tree is optimal.
-# As lambda gorws, eventually it will be better to replace a whole
+# As lambda grows, eventually it will be better to replace a whole
 # subtree with a leaf.  This happen for
 #
 #   lambda = Delta-error(t) / (size(t) - 1)
@@ -59,6 +59,7 @@ class ClassificationTree:
         ndarray, shape (m, k)
             class probabilities (one per feature vector).
         """
+        X = np.asarray(X)
         _check_size("mn", X)
         self._check_features(X)
         J = self._descend(X)
@@ -83,6 +84,8 @@ class ClassificationTree:
             number of cross-validation folds used for cost-complexity
             pruning (0 disable pruning).
         """
+        X = np.asarray(X)
+        Y = np.asarray(Y).astype(int)
         _check_size("mn, m", X, Y)
         Y = _check_labels(Y)
         dfun = _DIVERSITY_FUN[diversity]

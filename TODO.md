@@ -25,7 +25,7 @@ ASARRAY
 - [X] multiclass_ksvm.py
 - [X] multinomial_logistic.py
 - [X] gda.py
-- [ ] classtree.py
+- [X] classtree.py
 - [ ] cnn.py
 - [ ] dataset.py
 - [ ] kmeans.py
@@ -50,7 +50,7 @@ PYTEST
 - [X] test_multiclass_ksvm.py
 - [X] test_multinomial_logistic.py
 - [X] test_gda.py
-- [ ] test_classtree.py
+- [X] test_classtree.py
 - [ ] test_cnn.py
 - [ ] test_kmeans.py
 - [ ] test_knn.py
