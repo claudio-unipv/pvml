@@ -27,6 +27,9 @@ def ksvm_inference(X, Xtrain, alpha, b, kfun, kparam):
     ndarray, shape (m,)
         classification scores (one per feature vector).
     """
+    X = np.asarray(X)
+    Xtrain = np.asarray(Xtrain)
+    alpha = np.asarray(alpha)
     _check_size("mn, tn, t, *", X, Xtrain, alpha, b)
     K = kernel(X, Xtrain, kfun, kparam)
     logits = K @ alpha + b
@@ -54,6 +57,8 @@ def kernel(X1, X2, kfun, kparam):
          matrix with the result of the kernel function applied to
          the two groups of feature vectors.
     """
+    X1 = np.asarray(X1)
+    X2 = np.asarray(X2)
     _check_size("mn, tn", X1, X2)
     if kfun == "polynomial":
         return (X1 @ X2.T + 1) ** kparam
@@ -97,6 +102,10 @@ def ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
     b : float
         learned bias.
     """
+    Y = np.asarray(Y).astype(int, copy=False)
+    X = np.asarray(X)
+    if init_alpha is not None:
+        init_alpha = np.asfarray(init_alpha)
     _check_size("mn, m, m?, *?", X, Y, init_alpha, init_b)
     Y = _check_labels(Y)
     K = kernel(X, X, kfun, kparam)

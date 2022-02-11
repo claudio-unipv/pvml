@@ -1,5 +1,8 @@
 import numpy as np
-import unittest
+import pytest
+
+
+_RANDOM_SEED = 7477
 
 
 def separable_circle_data_set(n, k):
@@ -11,7 +14,8 @@ def separable_circle_data_set(n, k):
 
 
 def separable_hypercubes_data_set(n, k):
-    X = np.random.random((n, k))
+    rng = np.random.default_rng(_RANDOM_SEED)
+    X = rng.uniform(size=(n, k))
     Y = np.arange(n) % k
     X[np.arange(n), Y] += Y
     return X, Y
@@ -46,62 +50,53 @@ def categorical_data_set(n, k):
 
 
 def bow_data_set(n, k):
+    rng = np.random.default_rng(_RANDOM_SEED)
     Y = np.arange(n) % k
     Z = np.arange(k * 3) // 3
     P = 0.1 + 0.8 * (Z[None, :, None] == Y[:, None, None])
-    X = (np.random.random((n, k * 3, 5)) < P).sum(2)
+    X = (rng.uniform(size=(n, k * 3, 5)) < P).sum(2)
     return X, Y
 
 
-class TestTestData(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        np.random.seed(7477)
-
-    def test_separable_circle(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = separable_circle_data_set(4 * k, k)
-                c = np.bincount(Y, minlength=k)
-                self.assertEqual(c.min(), c.max())
-
-    def test_separable_hypercubes(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = separable_hypercubes_data_set(4 * k, k)
-                c = np.bincount(Y, minlength=k)
-                self.assertEqual(c.min(), c.max())
-
-    def test_separable_stripes(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = separable_stripes_data_set(4 * k, k)
-                self.assertEqual(Y.min(), 0)
-                self.assertEqual(Y.max(), k - 1)
-
-    def test_non_separable_checkerboard(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = non_separable_checkerboard_data_set(4 * k, k)
-                self.assertEqual(Y.min(), 0)
-                self.assertEqual(Y.max(), k - 1)
-
-    def test_categorical(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = categorical_data_set(4 * k, k)
-                self.assertEqual(Y.min(), 0)
-                self.assertEqual(Y.max(), k - 1)
-                self.assertEqual(np.abs(np.modf(X)[0]).max(), 0)
-
-    def test_bow(self):
-        for k in range(1, 6):
-            with self.subTest(k):
-                X, Y = bow_data_set(4 * k, k)
-                self.assertEqual(Y.min(), 0)
-                self.assertEqual(Y.max(), k - 1)
-                self.assertEqual(np.abs(np.modf(X)[0]).max(), 0)
+@pytest.mark.parametrize("k", range(1, 6))
+def test_separable_circle(k):
+    X, Y = separable_circle_data_set(4 * k, k)
+    c = np.bincount(Y, minlength=k)
+    assert c.min() == c.max()
 
 
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.parametrize("k", range(1, 6))
+def test_separable_hypercubes(k):
+    X, Y = separable_hypercubes_data_set(4 * k, k)
+    c = np.bincount(Y, minlength=k)
+    assert c.min() == c.max()
+
+
+@pytest.mark.parametrize("k", range(1, 6))
+def test_separable_stripes(k):
+    X, Y = separable_stripes_data_set(4 * k, k)
+    assert Y.min() == 0
+    assert Y.max() == k - 1
+
+
+@pytest.mark.parametrize("k", range(1, 6))
+def test_non_separable_checkerboard(k):
+    X, Y = non_separable_checkerboard_data_set(4 * k, k)
+    assert Y.min() == 0
+    assert Y.max() == k - 1
+
+
+@pytest.mark.parametrize("k", range(1, 6))
+def test_categorical(k):
+    X, Y = categorical_data_set(4 * k, k)
+    assert Y.min() == 0
+    assert Y.max() == k - 1
+    assert np.abs(np.modf(X)[0]).max() == 0
+
+
+@pytest.mark.parametrize("k", range(1, 6))
+def test_bow(k):
+    X, Y = bow_data_set(4 * k, k)
+    assert Y.min() == 0
+    assert Y.max() == k - 1
+    assert np.abs(np.modf(X)[0]).max() == 0

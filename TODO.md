@@ -19,13 +19,13 @@ ASARRAY
 -------
 - [X] logistic_regression.py
 - [X] svm.py
+- [X] ksvm.py
 - [ ] checks.py
 - [ ] classtree.py
 - [ ] cnn.py
 - [ ] dataset.py
 - [ ] gda.py
 - [ ] kmeans.py
-- [ ] ksvm.py
 - [ ] mlp.py
 - [ ] multiclass_ksvm.py
 - [ ] multiclass_svm.py
@@ -41,16 +41,16 @@ ASARRAY
 
 PYTEST
 ------
-- [X] test_checks.py
+- [X] test_data.py
+- [X] test_logistic_regression.py
 - [X] test_svm.py
+- [X] test_ksvm.py
+- [ ] test_checks.py
 - [ ] test_classtree.py
 - [ ] test_cnn.py
-- [ ] test_data.py
 - [ ] test_gda.py
 - [ ] test_kmeans.py
 - [ ] test_knn.py
-- [ ] test_ksvm.py
-- [ ] test_logistic_regression.py
 - [ ] test_mlp.py
 - [ ] test_multiclass_ksvm.py
 - [ ] test_multiclass_svm.py
@@ -66,6 +66,3 @@ PYTEST
 DOCS
 ====
 - turn lab activities into tutorials?  (long term)
-
-
-

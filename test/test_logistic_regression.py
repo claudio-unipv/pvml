@@ -12,7 +12,6 @@ def test_inference():
 
 
 def test_train_l2():
-    np.random.seed(7477)
     X, Y = test_data.separable_hypercubes_data_set(50, 2)
     w, b = pvml.logreg_train(X, Y, 0.0001, lr=10, steps=1000)
     P = pvml.logreg_inference(X, w, b)

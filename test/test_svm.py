@@ -15,7 +15,6 @@ def test_inference():
 
 
 def test_train1():
-    np.random.seed(7477)
     X, Y = test_data.separable_circle_data_set(50, 2)
     w, b = pvml.svm_train(X, Y, 0, lr=1e-1, steps=1000)
     Yhat, P = pvml.svm_inference(X, w, b)
@@ -24,7 +23,6 @@ def test_train1():
 
 
 def test_train2():
-    np.random.seed(7477)
     X, Y = test_data.separable_hypercubes_data_set(50, 2)
     w, b = pvml.svm_train(X, Y, 0.0001, lr=10, steps=1000)
     Yhat, P = pvml.svm_inference(X, w, b)
@@ -33,7 +31,6 @@ def test_train2():
 
 
 def test_train3():
-    np.random.seed(7477)
     X, Y = test_data.separable_stripes_data_set(50, 2)
     w, b = pvml.svm_train(X, Y, 0.0001, lr=10, steps=1000)
     Yhat, P = pvml.svm_inference(X, w, b)

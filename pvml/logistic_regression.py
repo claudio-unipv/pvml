@@ -144,7 +144,7 @@ def logreg_l1_train(X, Y, lambda_, lr=1e-3, steps=1000, init_w=None, init_b=0):
 
 
 def sigmoid(z):
-    """Elementwise .
+    """Elementwise sigmoid function.
 
     Parameters
     ----------
@@ -156,4 +156,5 @@ def sigmoid(z):
     ndarray, (same shape of z)
         the sigmoid of z
     """
+    z = np.asarray(z)
     return 1 / (1 + np.exp(-z))
