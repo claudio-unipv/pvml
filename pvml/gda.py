@@ -25,6 +25,10 @@ def hgda_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
+    if priors is not None:
+        priors = np.asfarray(priors)
     _check_size("mn, m, k?", X, Y, priors)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -61,6 +65,10 @@ def hgda_inference(X, means, invcovs, priors):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
+    X = np.asarray(X)
+    means = np.asarray(means)
+    invcovs = np.asarray(invcovs)
+    priors = np.asarray(priors)
     _check_size("mn, kn, knn, k", X, means, invcovs, priors)
     m, n = X.shape
     k = means.shape[0]
@@ -94,6 +102,10 @@ def ogda_train(X, Y, priors=None):
     b : ndarray, shape (k,)
          vector of biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
+    if priors is not None:
+        priors = np.asfarray(priors)
     _check_size("mn, m, k?", X, Y, priors)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -131,6 +143,9 @@ def ogda_inference(X, W, b):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
+    X = np.asarray(X)
+    W = np.asarray(W)
+    b = np.asarray(b)
     _check_size("mn, nk, k", X, W, b)
     scores = X @ W + b.T
     labels = np.argmin(scores, 1)
@@ -152,6 +167,8 @@ def mindist_train(X, Y):
     means : ndarray, shape (k, n)
          class mean vectors.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -179,6 +196,8 @@ def mindist_inference(X, means):
     ndarray, shape (m, k)
         scores assigned to each class.
     """
+    X = np.asarray(X)
+    means = np.asarray(means)
     _check_size("mn, kn", X, means)
     d = squared_distance_matrix(X, means)
     labels = np.argmin(d, 1)
