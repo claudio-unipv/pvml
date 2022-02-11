@@ -22,6 +22,9 @@ def kmeans_train(X, k, steps=1000, init_centroids=None):
     centroids : ndarray, shape (k, n)
          class centroids.
     """
+    X = np.asarray(X)
+    if init_centroids is not None:
+        init_centroids = np.asfarray(init_centroids)
     _check_size("mn, kn?", X, init_centroids)
     _check_centroids(X, k, init_centroids)
     m, n = X.shape
