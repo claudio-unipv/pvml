@@ -21,15 +21,15 @@ ASARRAY
 - [X] svm.py
 - [X] ksvm.py
 - [X] checks.py
+- [X] multiclass_svm.py
+- [ ] multiclass_ksvm.py
+- [ ] multinomial_logistic.py
 - [ ] gda.py
 - [ ] classtree.py
 - [ ] cnn.py
 - [ ] dataset.py
 - [ ] kmeans.py
 - [ ] mlp.py
-- [ ] multiclass_ksvm.py
-- [ ] multiclass_svm.py
-- [ ] multinomial_logistic.py
 - [ ] naivebayes.py
 - [ ] nearest_neighbor.py
 - [ ] normalization.py
@@ -46,15 +46,15 @@ PYTEST
 - [X] test_svm.py
 - [X] test_ksvm.py
 - [X] test_checks.py
+- [X] test_multiclass_svm.py
+- [ ] test_multiclass_ksvm.py
+- [ ] test_multinomial_logistic.py
 - [ ] test_gda.py
 - [ ] test_classtree.py
 - [ ] test_cnn.py
 - [ ] test_kmeans.py
 - [ ] test_knn.py
 - [ ] test_mlp.py
-- [ ] test_multiclass_ksvm.py
-- [ ] test_multiclass_svm.py
-- [ ] test_multinomial_logistic.py
 - [ ] test_naivebayes.py
 - [ ] test_normalization.py
 - [ ] test_pca.py

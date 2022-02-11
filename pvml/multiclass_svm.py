@@ -22,6 +22,8 @@ def one_vs_one_svm_inference(X, W, b):
     ndarray, shape (m, k)
         classification scores.
     """
+    X = np.asarray(X)
+    W = np.asarray(W)
     _check_size("mn, ns, s", X, W, b)
     # 1) recover the number of classes from s = 1 + 2 + ... + k
     m = X.shape[0]
@@ -69,6 +71,12 @@ def one_vs_one_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k * (k - 1) // 2,)
         vector of biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int, copy=False)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
+    if init_b is not None:
+        init_b = np.asfarray(init_b)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -113,6 +121,8 @@ def one_vs_rest_svm_inference(X, W, b):
     ndarray, shape (m, k)
         classification scores.
     """
+    X = np.asarray(X)
+    W = np.asarray(W)
     _check_size("mn, nk, k", X, W, b)
     logits = X @ W + b.T
     labels = np.argmax(logits, 1)
@@ -147,6 +157,12 @@ def one_vs_rest_svm_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k,)
         vector of biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int, copy=False)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
+    if init_b is not None:
+        init_b = np.asfarray(init_b)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     k = Y.max() + 1
