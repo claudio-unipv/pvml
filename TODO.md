@@ -26,12 +26,12 @@ ASARRAY
 - [X] multinomial_logistic.py
 - [X] gda.py
 - [X] classtree.py
+- [X] nearest_neighbor.py
+- [ ] naivebayes.py
 - [ ] cnn.py
 - [ ] dataset.py
 - [ ] kmeans.py
 - [ ] mlp.py
-- [ ] naivebayes.py
-- [ ] nearest_neighbor.py
 - [ ] normalization.py
 - [ ] pca.py
 - [ ] perceptron.py
@@ -51,11 +51,11 @@ PYTEST
 - [X] test_multinomial_logistic.py
 - [X] test_gda.py
 - [X] test_classtree.py
+- [X] test_knn.py
+- [ ] test_naivebayes.py
 - [ ] test_cnn.py
 - [ ] test_kmeans.py
-- [ ] test_knn.py
 - [ ] test_mlp.py
-- [ ] test_naivebayes.py
 - [ ] test_normalization.py
 - [ ] test_pca.py
 - [ ] test_perceptron.py

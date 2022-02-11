@@ -28,6 +28,9 @@ def knn_inference(X, Xtrain, Ytrain, k=1):
         probability estimates (one per feature vector).
 
     """
+    X = np.asarray(X)
+    Xtrain = np.asarray(Xtrain)
+    Ytrain = np.asarray(Ytrain).astype(int)
     _check_size("mn, tn, t", X, Xtrain, Ytrain)
     Ytrain = _check_labels(Ytrain)
     m = X.shape[0]
@@ -65,6 +68,8 @@ def knn_select_k(X, Y, maxk=101):
     float
         accuracy estimated for the best k.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     D = squared_distance_matrix(X, X)
