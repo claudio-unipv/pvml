@@ -27,7 +27,7 @@ ASARRAY
 - [X] gda.py
 - [X] classtree.py
 - [X] nearest_neighbor.py
-- [ ] naivebayes.py
+- [X] naivebayes.py
 - [ ] cnn.py
 - [ ] dataset.py
 - [ ] kmeans.py
@@ -52,7 +52,7 @@ PYTEST
 - [X] test_gda.py
 - [X] test_classtree.py
 - [X] test_knn.py
-- [ ] test_naivebayes.py
+- [X] test_naivebayes.py
 - [ ] test_cnn.py
 - [ ] test_kmeans.py
 - [ ] test_mlp.py

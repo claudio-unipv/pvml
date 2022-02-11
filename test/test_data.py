@@ -13,6 +13,15 @@ def separable_circle_data_set(n, k):
     return X, Y
 
 
+def separable_disks_data_set(n, k):
+    rng = np.random.default_rng(_RANDOM_SEED)
+    a = np.pi * rng.uniform(size=(n))
+    r = rng.uniform(size=(n))
+    Y = np.arange(n) % k
+    X = np.stack([2 * Y + r * np.cos(a) + 0.5, r * np.sin(a)], 1)
+    return X, Y
+
+
 def separable_hypercubes_data_set(n, k):
     rng = np.random.default_rng(_RANDOM_SEED)
     X = rng.uniform(size=(n, k))
@@ -61,6 +70,13 @@ def bow_data_set(n, k):
 @pytest.mark.parametrize("k", range(1, 6))
 def test_separable_circle(k):
     X, Y = separable_circle_data_set(4 * k, k)
+    c = np.bincount(Y, minlength=k)
+    assert c.min() == c.max()
+
+
+@pytest.mark.parametrize("k", range(1, 6))
+def test_separable_disks(k):
+    X, Y = separable_disks_data_set(4 * k, k)
     c = np.bincount(Y, minlength=k)
     assert c.min() == c.max()
 

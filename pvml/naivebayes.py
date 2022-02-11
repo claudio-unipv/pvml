@@ -25,6 +25,10 @@ def categorical_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
+    X = np.asarray(X).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
+    if priors is not None:
+        priors = np.asarray(priors)
     _check_size("mn, m, k?", X, Y, priors)
     Y = _check_labels(Y)
     X = _check_categorical(X)
@@ -63,6 +67,9 @@ def categorical_naive_bayes_inference(X, probs, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
+    X = np.asarray(X)
+    probs = np.asarray(probs)
+    priors = np.asarray(priors)
     _check_size("mn, knq, k", X, probs, priors)
     X = _check_categorical(X)
     q = probs.shape[2]
@@ -99,6 +106,10 @@ def multinomial_naive_bayes_train(X, Y, priors=None):
     b : ndarray, shape (k,)
          vector of biases.
     """
+    X = np.asarray(X).astype(int, copy=False)
+    Y = np.asarray(Y).astype(int)
+    if priors is not None:
+        priors = np.asarray(priors)
     _check_size("mn, m, k?", X, Y, priors)
     Y = _check_labels(Y)
     X = _check_categorical(X)
@@ -135,6 +146,9 @@ def multinomial_naive_bayes_inference(X, W, b):
     ndarray, shape (m, k)
         prediction scores.
     """
+    X = np.asarray(X)
+    W = np.asarray(W)
+    b = np.asarray(b)
     _check_size("mn, nk, k", X, W, b)
     scores = X @ W + b.T
     labels = np.argmax(scores, 1)
@@ -163,6 +177,10 @@ def gaussian_naive_bayes_train(X, Y, priors=None):
     priors : ndarray, shape (k,)
          class prior probabilities.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
+    if priors is not None:
+        priors = np.asarray(priors)
     _check_size("mn, m, k?", X, Y, priors)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -198,6 +216,9 @@ def gaussian_naive_bayes_inference(X, means, vars, priors):
     ndarray, shape (m, k)
         prediction scores.
     """
+    X = np.asarray(X)
+    means = np.asarray(means)
+    priors = np.asarray(priors)
     _check_size("mn, kn, k", X, means, priors)
     m = X.shape[0]
     k = means.shape[0]
