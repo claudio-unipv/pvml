@@ -20,6 +20,9 @@ def multinomial_logreg_inference(X, W, b):
     P : ndarray, shape (m, k)
          probability estimates.
     """
+    X = np.asarray(X)
+    W = np.asarray(W)
+    b = np.asarray(b)
     _check_size("mn, nk, k", X, W, b)
     logits = X @ W + b.T
     return softmax(logits)
@@ -38,6 +41,7 @@ def softmax(Z):
     ndarray, shape (m, n)
          data after the softmax has been applied to each row.
     """
+    Z = np.asarray(Z)
     _check_size("mn", Z)
     # Subtracting the maximum improves numerical stability
     E = np.exp(Z - Z.max(1, keepdims=True))
@@ -59,6 +63,7 @@ def one_hot_vectors(Y, classes):
     ndarray, shape (m, classes)
          One-hot vectors representing the labels Y.
     """
+    Y = np.asarray(Y).astype(int)
     _check_size("m", Y)
     Y = _check_labels(Y, classes)
     m = Y.shape[0]
@@ -95,6 +100,12 @@ def multinomial_logreg_train(X, Y, lambda_, lr=1e-3, steps=1000,
     b : ndarray, shape (k,)
         vector of biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int)
+    if init_w is not None:
+        init_w = np.asfarray(init_w)
+    if init_b is not None:
+        init_b = np.asfarray(init_b)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     m, n = X.shape
@@ -126,6 +137,8 @@ def cross_entropy(Y, P):
     float
         average cross entropy.
     """
+    Y = np.asarray(Y).astype(int)
+    P = np.asarray(P)
     _check_size("m, mk", Y, P)
     Y = _check_labels(Y, P.shape[1])
     logp = log_nowarn(P)
