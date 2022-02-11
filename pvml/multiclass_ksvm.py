@@ -28,6 +28,10 @@ def one_vs_one_ksvm_inference(X, Xtrain, alpha, b, kfun, kparam):
     ndarray, shape (m, k)
         classification scores.
     """
+    X = np.asarray(X)
+    Xtrain = np.asarray(Xtrain)
+    alpha = np.asarray(alpha)
+    b = np.asarray(b)
     _check_size("mn, tn, ts, s", X, Xtrain, alpha, b)
     # 1) recover the number of classes from s = 1 + 2 + ... + k
     m = X.shape[0]
@@ -80,6 +84,12 @@ def one_vs_one_ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
     b : ndarray(k * (k - 1) // 2,)
         learned biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int, copy=False)
+    if init_alpha is not None:
+        init_alpha = np.asfarray(init_alpha)
+    if init_b is not None:
+        init_b = np.asfarray(init_b)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     k = Y.max() + 1
@@ -130,6 +140,10 @@ def one_vs_rest_ksvm_inference(X, Xtrain, alpha, b, kfun, kparam):
     ndarray, shape (m, k)
         classification scores.
     """
+    X = np.asarray(X)
+    Xtrain = np.asarray(Xtrain)
+    alpha = np.asarray(alpha)
+    b = np.asarray(b)
     _check_size("mn, tn, tk, k", X, Xtrain, alpha, b)
     K = kernel(X, Xtrain, kfun, kparam)
     logits = K @ alpha + b
@@ -169,6 +183,12 @@ def one_vs_rest_ksvm_train(X, Y, kfun, kparam, lambda_, lr=1e-3, steps=1000,
     b : ndarray(k * (k - 1) // 2,)
         learned biases.
     """
+    X = np.asarray(X)
+    Y = np.asarray(Y).astype(int, copy=False)
+    if init_alpha is not None:
+        init_alpha = np.asfarray(init_alpha)
+    if init_b is not None:
+        init_b = np.asfarray(init_b)
     _check_size("mn, m", X, Y)
     Y = _check_labels(Y)
     k = Y.max() + 1

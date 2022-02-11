@@ -22,7 +22,7 @@ ASARRAY
 - [X] ksvm.py
 - [X] checks.py
 - [X] multiclass_svm.py
-- [ ] multiclass_ksvm.py
+- [X] multiclass_ksvm.py
 - [ ] multinomial_logistic.py
 - [ ] gda.py
 - [ ] classtree.py
@@ -47,7 +47,7 @@ PYTEST
 - [X] test_ksvm.py
 - [X] test_checks.py
 - [X] test_multiclass_svm.py
-- [ ] test_multiclass_ksvm.py
+- [X] test_multiclass_ksvm.py
 - [ ] test_multinomial_logistic.py
 - [ ] test_gda.py
 - [ ] test_classtree.py
