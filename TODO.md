@@ -20,11 +20,11 @@ ASARRAY
 - [X] logistic_regression.py
 - [X] svm.py
 - [X] ksvm.py
-- [ ] checks.py
+- [X] checks.py
+- [ ] gda.py
 - [ ] classtree.py
 - [ ] cnn.py
 - [ ] dataset.py
-- [ ] gda.py
 - [ ] kmeans.py
 - [ ] mlp.py
 - [ ] multiclass_ksvm.py
@@ -45,10 +45,10 @@ PYTEST
 - [X] test_logistic_regression.py
 - [X] test_svm.py
 - [X] test_ksvm.py
-- [ ] test_checks.py
+- [X] test_checks.py
+- [ ] test_gda.py
 - [ ] test_classtree.py
 - [ ] test_cnn.py
-- [ ] test_gda.py
 - [ ] test_kmeans.py
 - [ ] test_knn.py
 - [ ] test_mlp.py
