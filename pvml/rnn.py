@@ -39,9 +39,12 @@ class RNN:
         P : ndarray, shape (m, t, k)
             sequence of output estimates (m sequences, t time steps, k output estimates).
         """
+        X = np.asarray(X)
         m = X.shape[0]
         if inits is None:
             inits = [np.zeros((m, h)) for h in self.neuron_counts[1:-1]]
+        else:
+            inits = [np.asarray(ii) for ii in inits]
         H = X
         for cell, init in zip(self.cells, inits):
             H = cell.forward(H, init)
@@ -95,6 +98,8 @@ class RNN:
             size of the minibatch used in each step.  When None all
             the data is used in each step.
         """
+        X = np.asarray(X)
+        Y = np.asarray(Y)
         _check_size(("mtn, m" if Y.ndim == 1 else "mtn, mt"), X, Y)
         Y = _check_labels(Y, self.W.shape[1])
         m = X.shape[0]

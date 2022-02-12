@@ -207,6 +207,7 @@ class CNN:
             posterior probability estimates.
 
         """
+        X = np.asarray(X)
         probs = self.forward(X)[-1]
         labels = np.argmax(probs, 1)
         return labels, probs
@@ -236,6 +237,8 @@ class CNN:
             the data is used in each step.
 
         """
+        X = np.asarray(X)
+        Y = np.asarray(Y)
         m = X.shape[0]
         if batch is None:
             batch = X.shape[0]

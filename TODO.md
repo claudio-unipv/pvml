@@ -33,10 +33,10 @@ ASARRAY
 - [X] pca.py
 - [X] perceptron.py
 - [X] utils.py
+- [X] cnn.py
+- [X] mlp.py
+- [X] rnn.py
 - [ ] dataset.py
-- [ ] cnn.py
-- [ ] mlp.py
-- [ ] rnn.py
 
 
 PYTEST
@@ -57,8 +57,8 @@ PYTEST
 - [X] test_normalization.py
 - [X] test_pca.py
 - [X] test_perceptron.py
+- [X] test_mlp.py
 - [ ] test_cnn.py
-- [ ] test_mlp.py
 - [ ] test_rnn.py
 
 
