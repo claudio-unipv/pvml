@@ -32,11 +32,11 @@ ASARRAY
 - [X] normalization.py
 - [X] pca.py
 - [X] perceptron.py
+- [X] utils.py
+- [ ] dataset.py
 - [ ] cnn.py
 - [ ] mlp.py
 - [ ] rnn.py
-- [ ] dataset.py
-- [ ] utils.py
 
 
 PYTEST
