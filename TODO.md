@@ -58,7 +58,7 @@ PYTEST
 - [X] test_pca.py
 - [X] test_perceptron.py
 - [X] test_mlp.py
-- [ ] test_cnn.py
+- [X] test_cnn.py
 - [ ] test_rnn.py
 
 
