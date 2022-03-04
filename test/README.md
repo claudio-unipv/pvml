@@ -1,6 +1,6 @@
 # Run all the tests
 
-python3 -m unittest
+pytest
 
 
 # Code coverage
@@ -8,5 +8,5 @@ python3 -m unittest
 Requires: pip3 install coverage
 
 coverage erase
-coverage run --source pvml -m unittest
+coverage run --source pvml -m pytest
 coverage report -m
