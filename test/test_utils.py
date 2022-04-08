@@ -21,7 +21,7 @@ def test_one_hot_vectors():
 
 
 def test_squared_distance_matrix_sym():
-    X = np.linspace(-1, 1, 10).reshape(5, 2)
+    X = np.linspace(-10, 10, 10).reshape(5, 2)
     D = pvml.squared_distance_matrix(X, X)
     assert np.all(D >= 0)
     assert np.all(np.diag(D) == 0)
