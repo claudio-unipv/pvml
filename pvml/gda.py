@@ -83,7 +83,7 @@ def hgda_inference(X, means, invcovs, priors):
 
 
 def ogda_train(X, Y, priors=None):
-    """Train a omoscedastic GDA classifier.
+    """Train a homoscedastic GDA classifier.
 
     Parameters
     ----------
@@ -125,7 +125,7 @@ def ogda_train(X, Y, priors=None):
 
 
 def ogda_inference(X, W, b):
-    """Omoscedastic GDA inference.
+    """Homoscedastic GDA inference.
 
     Parameters
     ----------

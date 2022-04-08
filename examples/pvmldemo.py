@@ -418,7 +418,7 @@ class HeteroscedasticGDA(DemoModel):
 
 
 @_register_model("ogda")
-class OmoscedasticGDA(DemoModel):
+class HomoscedasticGDA(DemoModel):
     def __init__(self, args):
         super().__init__(args, False, False)
         self.w = None

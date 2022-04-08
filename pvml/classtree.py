@@ -11,7 +11,7 @@ from .utils import one_hot_vectors, log_nowarn
 #
 # In training a 'full' tree is grown with a high likelihood of
 # overfitting the data.  A diversity criterion is used to split the
-# data until it is divided in omogeneous subsets.
+# data until it is divided in homogeneous subsets.
 #
 # Then, cost-complexity pruning is used to prune the tree to the
 # 'right' level of complexity.  CC pruning optimize the following
