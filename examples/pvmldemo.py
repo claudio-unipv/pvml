@@ -51,13 +51,15 @@ def parse_args():
     a("--kernel-param", type=float, default=2,
       help="Parameter of the kernel")
     a("--knn-k", type=int, default=0, help="KNN neighbors (default auto)")
-    a("--classtree-minsize", type=int, default=1,
-      help="Classification tree minimum node size (%(default)d)")
+    a("--split-minsize", type=int, default=1,
+      help="Classification tree and AdaBoost minimum node size (%(default)d)")
     a("--classtree-diversity", default="gini",
       choices=["gini", "entropy", "error"],
       help="Classification tree diversity function (%(default)s)")
     a("--classtree-cv", type=int, default=5,
       help="Cross-validation folds used for pruning (%(default)d)")
+    a("--adaboost-iterations", type=int, default=25,
+      help="Number of Adaboost iterations (%(default)d)")
     a("--mlp-hidden", default="",
       help="Comma-separated list of number of hidden neurons")
     a("--mlp-momentum", type=float, default=0.99,
@@ -506,7 +508,7 @@ class ClassificationTree(DemoModel):
     def __init__(self, args):
         super().__init__(args, False, False)
         self.tree = pvml.ClassificationTree()
-        self.minsize = args.classtree_minsize
+        self.minsize = args.split_minsize
         self.cv = args.classtree_cv
         self.diversity = args.classtree_diversity
 
@@ -516,6 +518,22 @@ class ClassificationTree(DemoModel):
 
     def inference(self, X):
         ret = self.tree.inference(X)
+        return ret
+
+
+@_register_model("adaboost")
+class AdaBoostTree(DemoModel):
+    def __init__(self, args):
+        super().__init__(args, True, False)
+        self.ada = pvml.AdaBoost()
+        self.minsize = args.split_minsize
+        self.iterations = args.adaboost_iterations
+
+    def train_step(self, X, Y, steps):
+        self.ada.train(X, Y, self.iterations, minsize=self.minsize)
+
+    def inference(self, X):
+        ret = self.ada.inference(X)
         return ret
 
 

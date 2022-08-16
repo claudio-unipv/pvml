@@ -103,7 +103,7 @@ class ClassificationTree:
         """Initialize the attributes."""
         self.children = np.zeros((nodes, 2), dtype=int)
         self.feature = np.zeros(nodes, dtype=int)
-        self.terminal = np.ones(nodes, dtype=np.bool)
+        self.terminal = np.ones(nodes, dtype=bool)
         self.threshold = np.zeros(nodes)
         self.distribution = np.ones((nodes, classes))
         self.nodes = 1

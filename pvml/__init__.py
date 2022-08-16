@@ -10,6 +10,7 @@ from .naivebayes import *
 from .nearest_neighbor import *
 from .kmeans import *
 from .classtree import *
+from .adaboost import *
 from .perceptron import *
 from .mlp import *
 from .cnn import *
