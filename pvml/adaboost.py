@@ -32,8 +32,12 @@ class AdaBoost:
         X = np.asarray(X)
         _check_size("mn", X)
         self._check_features(X)
-        scores = 2 * ((X[:, self.indices] > self.thresholds[None]) @ self.alphas)
-        scores -= self.alphas.sum()
+        if self.indices.size == 0:
+            scores = np.zeros(X.shape[0])
+        else:
+            decisions = (X[:, self.indices] >= self.thresholds[None])
+            scores = decisions @ (2 * self.alphas)
+            scores -= self.alphas.sum()
         labels = (scores >= 0).astype(int)
         return labels, scores
 
