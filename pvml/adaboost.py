@@ -67,6 +67,7 @@ class AdaBoost:
         _, scores = self.inference(X)
         w = np.exp(-scores)
         for _ in range(iterations):
+            w = w / max(1e-6, w.sum())
             stump = _find_stump(X, w, Y, minsize)
             if stump is None:
                 break
