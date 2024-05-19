@@ -24,6 +24,27 @@ class RNN:
         self.up_b = np.zeros_like(self.b)
         self.up_p = [[np.zeros_like(p) for p in c.parameters()] for c in self.cells]
 
+    def inference(self, X):
+        """Compute the predictions of the network.
+
+        Parameters
+        ----------
+        X : ndarray, shape (m, t, n)
+            input sequences (m sequences of length t and n features).
+
+        Returns
+        -------
+        ndarray, shape (m, t)
+            predicted labels, in the range 0, ..., k - 1
+        ndarray, shape (m, t, k)
+            posterior probability estimates.
+
+        """
+        X = np.asarray(X)
+        probs = self.forward(X)
+        labels = np.argmax(probs, 2)
+        return labels, probs
+
     def forward(self, X, inits=None):
         """Forward step of the RNN.
 

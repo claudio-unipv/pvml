@@ -10,10 +10,9 @@ def log_nowarn(x):
 def one_hot_vectors(Y, classes):
     """Create the array with the one-hot-vector representation of class labels in Y."""
     Y = np.asarray(Y).astype(int)
-    m = Y.shape[0]
-    H = np.zeros((m, classes), dtype=int)
-    H[np.arange(m), Y] = 1
-    return H
+    H = np.zeros((Y.size, classes), dtype=int)
+    H[np.arange(Y.size), Y.reshape(-1)] = 1
+    return H.reshape(*Y.shape, classes)
 
 
 def squared_distance_matrix(X1, X2):
